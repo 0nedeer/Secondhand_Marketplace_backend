@@ -4,6 +4,11 @@ import com.secondhand.marketplace.backend.modules.user.dto.*;
 import com.secondhand.marketplace.backend.modules.user.vo.*;
 import java.util.List;
 
+import com.secondhand.marketplace.backend.modules.user.dto.SmsLoginDTO;
+import com.secondhand.marketplace.backend.modules.user.vo.VerificationDetailVO;
+import com.secondhand.marketplace.backend.modules.user.vo.ReputationVO;
+import com.secondhand.marketplace.backend.modules.user.vo.ReputationHistoryVO;
+
 public interface UserService {
 
     // 用户注册登录
@@ -59,10 +64,29 @@ public interface UserService {
     void toggleCanBuy(Long userId, Boolean canBuy);
     void toggleCanSell(Long userId, Boolean canSell);
 
+
+    // ========== 手机验证码登录（模拟版）==========
     //手机验证码登录
     LoginVO smsLogin(SmsLoginDTO smsLoginDTO);
 
-    //发送短信验证码
+    //发送短信验证码(模拟：控制台打印)
     void sendSmsCode(String phone);
+
+    //查询认证记录详情
+    VerificationDetailVO getVerificationDetail(Long userId,Long verificationId);
+
+    //重新提交认证
+    void resubmitVerification(Long userId,Long verificationId,RealNameVerificationDTO verificationDTO);
+
+    // ========== 信誉相关 ==========
+    //获取卖家信誉快照
+    ReputationVO getSellerReputation(Long sellerId);
+
+    //获取卖家历史趋势
+    List<ReputationHistoryVO> getReputationHistory(Long sellerId,Integer days);
+
+
+
+
 
 }

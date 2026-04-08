@@ -28,6 +28,17 @@ public class UserServiceImpl implements UserService {
     private final SellerFollowMapper sellerFollowMapper;
     private final JwtUtil jwtUtil;
     private final PasswordUtil passwordUtil;
+    private final SellerReputationSnapshotMapper sellerReputationSnapshotMapper;
+    //用于验证码模拟
+    private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+
+    // 模拟验证码存储（使用简单的内存Map，生产环境建议用Redis）
+    private final java.util.Map<String, String> smsCodeCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Map<String, Long> smsCodeSendTime = new java.util.concurrent.ConcurrentHashMap<>();
+
+
+
+
 
     @Override
     @Transactional // 事务注解：保证多表操作要么全成功，要么全失败
@@ -595,40 +606,65 @@ public class UserServiceImpl implements UserService {
         userAccountMapper.updateById(user);
     }
 
-    //验证码部分
-    /*@Autowired
-    private SmsService smsService;
-
+    //验证码相关
     @Override
     public void sendSmsCode(String phone) {
-        // 检查手机号是否已被注册
-        LambdaQueryWrapper<UserAccount> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserAccount::getPhone, phone);
-        UserAccount existingUser = userAccountMapper.selectOne(wrapper);
-
-        if (existingUser == null) {
-            throw new BusinessException("手机号未注册");
+        // 检查发送频率（1分钟内只能发送1次）
+        Long lastSendTime = smsCodeSendTime.get(phone);
+        if (lastSendTime != null && System.currentTimeMillis() - lastSendTime < 60000) {
+            throw new BusinessException("请勿频繁发送验证码，请稍后再试");
         }
 
-        // 发送验证码
-        smsService.sendVerifyCode(phone);
+        // 生成6位随机验证码
+        String code = String.format("%06d", new java.util.Random().nextInt(999999));
+
+        // 存储验证码（有效期5分钟）
+        smsCodeCache.put(phone, code);
+        smsCodeSendTime.put(phone, System.currentTimeMillis());
+
+        // 模拟发送短信：在控制台打印验证码
+        System.out.println("==========================================");
+        System.out.println("【模拟短信】手机号：" + phone + "，验证码：" + code);
+        System.out.println("验证码5分钟内有效，请在控制台查看");
+        System.out.println("==========================================");
+
+        // 5分钟后自动清除验证码
+        new Thread(() -> {
+            try {
+                Thread.sleep(300000); // 5分钟
+                smsCodeCache.remove(phone);
+                smsCodeSendTime.remove(phone);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }).start();
     }
 
     @Override
     public LoginVO smsLogin(SmsLoginDTO smsLoginDTO) {
         // 1. 验证验证码
-        smsService.verifyCode(smsLoginDTO.getPhone(), smsLoginDTO.getVerifyCode());
+        String savedCode = smsCodeCache.get(smsLoginDTO.getPhone());
+        if (savedCode == null) {
+            throw new BusinessException("验证码已过期，请重新获取");
+        }
+        if (!savedCode.equals(smsLoginDTO.getVerifyCode())) {
+            throw new BusinessException("验证码错误");
+        }
 
-        // 2. 根据手机号查找用户
+        // 2. 验证成功后删除验证码（防止重复使用）
+        smsCodeCache.remove(smsLoginDTO.getPhone());
+        smsCodeSendTime.remove(smsLoginDTO.getPhone());
+
+        // 3. 根据手机号查找用户
         LambdaQueryWrapper<UserAccount> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserAccount::getPhone, smsLoginDTO.getPhone());
         UserAccount user = userAccountMapper.selectOne(wrapper);
 
         if (user == null) {
-            throw new BusinessException("用户不存在");
+            throw new BusinessException("用户不存在，请先注册");
         }
 
-        // 3. 检查用户状态
+        // 4. 检查用户状态
         if ("banned".equals(user.getUserStatus())) {
             throw new BusinessException("账号已被封禁");
         }
@@ -636,19 +672,24 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("账号已被删除");
         }
 
-        // 4. 更新最后登录时间
+        // 5. 更新最后登录时间
         userAccountMapper.updateLastLoginTime(user.getId());
 
-        // 5. 生成token
+        // 6. 生成token
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
 
-        // 6. 构建返回结果
+        // 7. 获取头像URL
+        UserProfile profile = userProfileMapper.findByUserId(user.getId());
+        String avatarUrl = profile != null ? profile.getAvatarUrl() : null;
+
+        // 8. 构建返回结果
         UserVO userVO = UserVO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .nickname(user.getNickname())
                 .phone(user.getPhone())
                 .email(user.getEmail())
+                .avatarUrl(avatarUrl)
                 .userStatus(user.getUserStatus())
                 .lastLoginAt(LocalDateTime.now())
                 .registeredAt(user.getRegisteredAt())
@@ -658,5 +699,109 @@ public class UserServiceImpl implements UserService {
                 .token(token)
                 .userInfo(userVO)
                 .build();
-    }*/
+    }
+
+    //认证相关
+    @Override
+    public VerificationDetailVO getVerificationDetail(Long userId, Long verificationId) {
+        UserVerification verification = userVerificationMapper.selectById(verificationId);
+        if (verification == null) {
+            throw new BusinessException("认证记录不存在");
+        }
+        // 只能查询自己的认证记录
+        if (!verification.getUserId().equals(userId)) {
+            throw new BusinessException("无权查看他人的认证记录");
+        }
+
+        // 身份证号脱敏处理
+        String idCardNumber = verification.getIdCardNumber();
+        String maskedIdCard = null;
+        if (idCardNumber != null && idCardNumber.length() >= 10) {
+            maskedIdCard = idCardNumber.substring(0, 6) + "****" + idCardNumber.substring(idCardNumber.length() - 4);
+        }
+
+        return VerificationDetailVO.builder()
+                .id(verification.getId())
+                .verifyType(verification.getVerifyType())
+                .realName(verification.getRealName())
+                .idCardNumber(maskedIdCard)
+                .verifyStatus(verification.getVerifyStatus())
+                .rejectReason(verification.getRejectReason())
+                .submittedAt(verification.getSubmittedAt() != null ? verification.getSubmittedAt().toString() : null)
+                .reviewedAt(verification.getReviewedAt() != null ? verification.getReviewedAt().toString() : null)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void resubmitVerification(Long userId, Long verificationId, RealNameVerificationDTO verificationDTO) {
+        UserVerification verification = userVerificationMapper.selectById(verificationId);
+        if (verification == null) {
+            throw new BusinessException("认证记录不存在");
+        }
+        if (!verification.getUserId().equals(userId)) {
+            throw new BusinessException("无权操作他人的认证记录");
+        }
+        // 只有被驳回的记录才能重新提交
+        if (!"rejected".equals(verification.getVerifyStatus())) {
+            throw new BusinessException("只有被驳回的认证记录才能重新提交");
+        }
+
+        // 更新认证信息
+        verification.setRealName(verificationDTO.getRealName());
+        verification.setIdCardNumber(verificationDTO.getIdCardNumber());
+        verification.setVerifyStatus("pending");
+        verification.setSubmittedAt(LocalDateTime.now());
+        verification.setReviewedBy(null);
+        verification.setReviewedAt(null);
+        verification.setRejectReason(null);
+
+        userVerificationMapper.updateById(verification);
+    }
+
+    //信誉相关
+    @Override
+    public ReputationVO getSellerReputation(Long sellerId) {
+        // 获取卖家基础信息
+        UserProfile profile = userProfileMapper.findByUserId(sellerId);
+        if (profile == null) {
+            throw new BusinessException("卖家信息不存在");
+        }
+
+        // 获取最新快照
+        SellerReputationSnapshot snapshot = sellerReputationSnapshotMapper.findLatestBySellerId(sellerId);
+
+        Integer totalOrders = snapshot != null ? snapshot.getTotalOrders() : 0;
+        Integer completedOrders = snapshot != null ? snapshot.getCompletedOrders() : 0;
+
+        return ReputationVO.builder()
+                .creditScore(profile.getCreditScore())
+                .positiveRate(profile.getPositiveRate())
+                .totalOrders(totalOrders)
+                .completedOrders(completedOrders)
+                .totalReviewCount(profile.getTotalReviewCount())
+                .build();
+    }
+
+    @Override
+    public List<ReputationHistoryVO> getReputationHistory(Long sellerId, Integer days) {
+        if (days == null || days <= 0) {
+            days = 30; // 默认30天
+        }
+        if (days > 90) {
+            days = 90; // 最多90天
+        }
+
+        List<SellerReputationSnapshot> snapshots = sellerReputationSnapshotMapper.findHistorySnapshots(sellerId, days);
+
+        return snapshots.stream()
+                .map(s -> ReputationHistoryVO.builder()
+                        .snapshotDate(s.getSnapshotDate())
+                        .creditScore(s.getCreditScore())
+                        .positiveRate(s.getPositiveRate())
+                        .totalOrders(s.getTotalOrders())
+                        .completedOrders(s.getCompletedOrders())
+                        .build())
+                .collect(Collectors.toList());
+    }
 }
