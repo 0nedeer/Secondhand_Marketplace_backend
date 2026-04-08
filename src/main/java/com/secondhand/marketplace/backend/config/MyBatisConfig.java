@@ -6,6 +6,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
 @EnableTransactionManagement
-@MapperScan("com.secondhand.marketplace.backend.modules")
-public class MybatisPlusConfig {
+@MapperScan("com.secondhand.marketplace.backend.modules.**.mapper")
+public class MyBatisConfig {
 }

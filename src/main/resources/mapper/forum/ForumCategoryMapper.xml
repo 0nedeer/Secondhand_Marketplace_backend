@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.secondhand.marketplace.backend.modules.forum.mapper.ForumCategoryMapper">
+    
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.secondhand.marketplace.backend.modules.forum.entity.ForumCategory">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="parent_id" property="parentId" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="icon" property="icon" jdbcType="VARCHAR"/>
+        <result column="sort_order" property="sortOrder" jdbcType="INTEGER"/>
+        <result column="is_enabled" property="isEnabled" jdbcType="TINYINT"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+    
+    <!-- 基础字段列表 -->
+    <sql id="Base_Column_List">
+        id, parent_id, name, icon, sort_order, is_enabled, created_at, updated_at
+    </sql>
+    
+    <!-- 插入 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO forum_category (parent_id, name, icon, sort_order, is_enabled, created_at, updated_at)
+        VALUES (#{parentId}, #{name}, #{icon}, #{sortOrder}, #{isEnabled}, #{createdAt}, #{updatedAt})
+    </insert>
+    
+    <!-- 根据ID删除 -->
+    <delete id="deleteById">
+        DELETE FROM forum_category WHERE id = #{id}
+    </delete>
+    
+    <!-- 根据ID更新 -->
+    <update id="updateById">
+        UPDATE forum_category
+        SET parent_id = #{parentId},
+            name = #{name},
+            icon = #{icon},
+            sort_order = #{sortOrder},
+            is_enabled = #{isEnabled},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_category WHERE id = #{id}
+    </select>
+    
+    <!-- 查询所有论坛分类 -->
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_category ORDER BY sort_order ASC, id ASC
+    </select>
+    
+    <!-- 查询所有启用的论坛分类 -->
+    <select id="selectAllEnabled" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_category WHERE is_enabled = 1 ORDER BY sort_order ASC, id ASC
+    </select>
+    
+    <!-- 根据父分类ID查询子分类 -->
+    <select id="selectByParentId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_category WHERE parent_id = #{parentId} ORDER BY sort_order ASC, id ASC
+    </select>
+    
+</mapper>
