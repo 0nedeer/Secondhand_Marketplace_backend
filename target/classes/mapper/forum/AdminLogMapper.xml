@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.secondhand.marketplace.backend.modules.forum.mapper.AdminLogMapper">
+    
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.secondhand.marketplace.backend.modules.forum.entity.AdminLog">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="admin_id" property="adminId" jdbcType="BIGINT"/>
+        <result column="target_type" property="targetType" jdbcType="VARCHAR"/>
+        <result column="target_id" property="targetId" jdbcType="BIGINT"/>
+        <result column="action" property="action" jdbcType="VARCHAR"/>
+        <result column="reason" property="reason" jdbcType="VARCHAR"/>
+        <result column="before_data" property="beforeData" jdbcType="VARCHAR"/>
+        <result column="after_data" property="afterData" jdbcType="VARCHAR"/>
+        <result column="ip_address" property="ipAddress" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+    
+    <!-- 基础字段列表 -->
+    <sql id="Base_Column_List">
+        id, admin_id, target_type, target_id, action, reason, before_data, after_data, ip_address, created_at
+    </sql>
+    
+    <!-- 插入 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO admin_log (admin_id, target_type, target_id, action, reason, before_data, after_data, ip_address, created_at)
+        VALUES (#{adminId}, #{targetType}, #{targetId}, #{action}, #{reason}, #{beforeData}, #{afterData}, #{ipAddress}, #{createdAt})
+    </insert>
+    
+    <!-- 根据ID删除 -->
+    <delete id="deleteById">
+        DELETE FROM admin_log WHERE id = #{id}
+    </delete>
+    
+    <!-- 根据ID更新 -->
+    <update id="updateById">
+        UPDATE admin_log
+        SET admin_id = #{adminId},
+            target_type = #{targetType},
+            target_id = #{targetId},
+            action = #{action},
+            reason = #{reason},
+            before_data = #{beforeData},
+            after_data = #{afterData},
+            ip_address = #{ipAddress},
+            created_at = #{createdAt}
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM admin_log WHERE id = #{id}
+    </select>
+    
+    <!-- 查询所有管理员操作日志 -->
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM admin_log ORDER BY created_at DESC
+    </select>
+    
+    <!-- 根据管理员ID查询操作日志 -->
+    <select id="selectByAdminId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM admin_log WHERE admin_id = #{adminId} ORDER BY created_at DESC
+    </select>
+    
+    <!-- 根据目标类型和目标ID查询操作日志 -->
+    <select id="selectByTarget" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM admin_log WHERE target_type = #{targetType} AND target_id = #{targetId} ORDER BY created_at DESC
+    </select>
+    
+</mapper>
