@@ -78,7 +78,7 @@ public class UserServiceImpl implements UserService {
         user.setCanBuy(1);
         user.setCanSell(1);
         user.setIsAdmin(0);
-        user.setUserStatus("pending_review");
+        user.setUserStatus("pending");
         user.setRegisteredAt(LocalDateTime.now());
 
         userAccountMapper.insert(user);//插入主表

@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-08T10:36:53+0800",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.45.0.v20260224-0835, environment: Java 21.0.10 (Eclipse Adoptium)"
+    date = "2026-04-09T21:51:27+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.9 (Oracle Corporation)"
 )
 @Component
 public class CategoryConverterImpl implements CategoryConverter {
@@ -25,9 +25,9 @@ public class CategoryConverterImpl implements CategoryConverter {
 
         ForumCategory.ForumCategoryBuilder forumCategory = ForumCategory.builder();
 
-        forumCategory.icon( dto.getIcon() );
-        forumCategory.name( dto.getName() );
         forumCategory.parentId( dto.getParentId() );
+        forumCategory.name( dto.getName() );
+        forumCategory.icon( dto.getIcon() );
         forumCategory.sortOrder( dto.getSortOrder() );
 
         forumCategory.isEnabled( 1 );
@@ -41,10 +41,10 @@ public class CategoryConverterImpl implements CategoryConverter {
             return;
         }
 
-        entity.setIcon( dto.getIcon() );
-        entity.setIsEnabled( dto.getIsEnabled() );
         entity.setName( dto.getName() );
+        entity.setIcon( dto.getIcon() );
         entity.setSortOrder( dto.getSortOrder() );
+        entity.setIsEnabled( dto.getIsEnabled() );
     }
 
     @Override
@@ -55,12 +55,12 @@ public class CategoryConverterImpl implements CategoryConverter {
 
         CategoryVO categoryVO = new CategoryVO();
 
-        categoryVO.setIcon( entity.getIcon() );
         categoryVO.setId( entity.getId() );
-        categoryVO.setIsEnabled( entity.getIsEnabled() );
         categoryVO.setName( entity.getName() );
+        categoryVO.setIcon( entity.getIcon() );
         categoryVO.setParentId( entity.getParentId() );
         categoryVO.setSortOrder( entity.getSortOrder() );
+        categoryVO.setIsEnabled( entity.getIsEnabled() );
 
         return categoryVO;
     }

@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-08T10:36:53+0800",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.45.0.v20260224-0835, environment: Java 21.0.10 (Eclipse Adoptium)"
+    date = "2026-04-09T21:51:27+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.9 (Oracle Corporation)"
 )
 @Component
 public class ReportConverterImpl implements ReportConverter {
@@ -24,11 +24,11 @@ public class ReportConverterImpl implements ReportConverter {
 
         ForumReport.ForumReportBuilder forumReport = ForumReport.builder();
 
-        forumReport.evidenceUrls( dto.getEvidenceUrls() );
-        forumReport.reportDetail( dto.getReportDetail() );
-        forumReport.reportReason( dto.getReportReason() );
-        forumReport.targetId( dto.getTargetId() );
         forumReport.targetType( dto.getTargetType() );
+        forumReport.targetId( dto.getTargetId() );
+        forumReport.reportReason( dto.getReportReason() );
+        forumReport.reportDetail( dto.getReportDetail() );
+        forumReport.evidenceUrls( dto.getEvidenceUrls() );
 
         forumReport.reportStatus( "pending" );
 
@@ -43,16 +43,16 @@ public class ReportConverterImpl implements ReportConverter {
 
         ReportVO reportVO = new ReportVO();
 
-        reportVO.setCreatedAt( entity.getCreatedAt() );
-        reportVO.setEvidenceUrls( entity.getEvidenceUrls() );
-        reportVO.setHandleResult( entity.getHandleResult() );
-        reportVO.setHandledAt( entity.getHandledAt() );
         reportVO.setId( entity.getId() );
-        reportVO.setReportDetail( entity.getReportDetail() );
-        reportVO.setReportReason( entity.getReportReason() );
-        reportVO.setReportStatus( entity.getReportStatus() );
-        reportVO.setTargetId( entity.getTargetId() );
         reportVO.setTargetType( entity.getTargetType() );
+        reportVO.setTargetId( entity.getTargetId() );
+        reportVO.setReportReason( entity.getReportReason() );
+        reportVO.setReportDetail( entity.getReportDetail() );
+        reportVO.setEvidenceUrls( entity.getEvidenceUrls() );
+        reportVO.setReportStatus( entity.getReportStatus() );
+        reportVO.setHandleResult( entity.getHandleResult() );
+        reportVO.setCreatedAt( entity.getCreatedAt() );
+        reportVO.setHandledAt( entity.getHandledAt() );
 
         return reportVO;
     }
