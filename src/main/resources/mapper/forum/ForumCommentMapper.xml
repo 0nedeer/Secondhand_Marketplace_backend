@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.secondhand.marketplace.backend.modules.forum.mapper.ForumCommentMapper">
+    
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.secondhand.marketplace.backend.modules.forum.entity.ForumComment">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="post_id" property="postId" jdbcType="BIGINT"/>
+        <result column="parent_comment_id" property="parentCommentId" jdbcType="BIGINT"/>
+        <result column="reply_to_user_id" property="replyToUserId" jdbcType="BIGINT"/>
+        <result column="commenter_id" property="commenterId" jdbcType="BIGINT"/>
+        <result column="content" property="content" jdbcType="VARCHAR"/>
+        <result column="is_deleted" property="isDeleted" jdbcType="TINYINT"/>
+        <result column="audit_status" property="auditStatus" jdbcType="VARCHAR"/>
+        <result column="like_count" property="likeCount" jdbcType="INTEGER"/>
+        <result column="reply_count" property="replyCount" jdbcType="INTEGER"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+    
+    <!-- 基础字段列表 -->
+    <sql id="Base_Column_List">
+        id, post_id, parent_comment_id, reply_to_user_id, commenter_id, content, is_deleted,
+        audit_status, like_count, reply_count, created_at, updated_at
+    </sql>
+    
+    <!-- 插入 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO forum_comment (post_id, parent_comment_id, reply_to_user_id, commenter_id, content, is_deleted,
+                                  audit_status, like_count, reply_count, created_at, updated_at)
+        VALUES (#{postId}, #{parentCommentId}, #{replyToUserId}, #{commenterId}, #{content}, #{isDeleted},
+                #{auditStatus}, #{likeCount}, #{replyCount}, #{createdAt}, #{updatedAt})
+    </insert>
+    
+    <!-- 根据ID删除 -->
+    <delete id="deleteById">
+        DELETE FROM forum_comment WHERE id = #{id}
+    </delete>
+    
+    <!-- 根据ID更新 -->
+    <update id="updateById">
+        UPDATE forum_comment
+        SET post_id = #{postId},
+            parent_comment_id = #{parentCommentId},
+            reply_to_user_id = #{replyToUserId},
+            commenter_id = #{commenterId},
+            content = #{content},
+            is_deleted = #{isDeleted},
+            audit_status = #{auditStatus},
+            like_count = #{likeCount},
+            reply_count = #{replyCount},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_comment WHERE id = #{id}
+    </select>
+    
+    <!-- 查询所有评论 -->
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_comment WHERE is_deleted = 0 ORDER BY created_at DESC
+    </select>
+    
+    <!-- 查询帖子的顶级评论列表（parent_comment_id = 0） -->
+    <select id="selectByPostId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_comment
+        WHERE post_id = #{postId} AND parent_comment_id = 0 AND is_deleted = 0
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 查询某个评论的子回复列表 -->
+    <select id="selectByParentId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_comment
+        WHERE parent_comment_id = #{parentId} AND is_deleted = 0
+        ORDER BY created_at ASC
+    </select>
+    
+    <!-- 根据评论用户ID查询评论 -->
+    <select id="selectByCommenterId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_comment
+        WHERE commenter_id = #{commenterId} AND is_deleted = 0
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 统计帖子的评论总数 -->
+    <select id="countByPostId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM forum_comment
+        WHERE post_id = #{postId} AND is_deleted = 0
+    </select>
+    
+</mapper>

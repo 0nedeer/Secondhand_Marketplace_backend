@@ -1,4 +1,4 @@
-﻿server:
+server:
   port: 8080
 
 spring:
@@ -6,13 +6,19 @@ spring:
     name: secondhand-marketplace-backend
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/secondhand_marketplace?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:mysql://218.244.142.223:3306/secondhand_marketplace?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
-    password: root
+    password: 511923YYrr
     hikari:
       initialization-fail-timeout: -1
 
-mybatis-plus:
+# 测试配置
+test:
+  enabled: true
+  default-user-id: 10001
+  default-admin-id: 1
+
+mybatis:
   mapper-locations: classpath*:/mapper/**/*.xml
   type-aliases-package: com.secondhand.marketplace.backend.modules.*.entity
   configuration:
@@ -23,3 +29,9 @@ logging:
   level:
     root: info
     com.secondhand.marketplace.backend: info
+
+minio:
+  endpoint: http://218.244.142.223:9000
+  accessKey: 7zDjfOTcpJtwdqMzIRU3
+  secretKey: U3VcHvAzOAN2RG8wckQ1Hg03vn9M7PtktXWRYaV4
+  bucketName: filebucket

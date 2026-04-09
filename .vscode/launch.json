@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-SecondhandMarketplaceBackendApplication<secondhand-marketplace-backend>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.secondhand.marketplace.backend.SecondhandMarketplaceBackendApplication",
+            "projectName": "secondhand-marketplace-backend",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

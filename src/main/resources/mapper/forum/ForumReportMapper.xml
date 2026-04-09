@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.secondhand.marketplace.backend.modules.forum.mapper.ForumReportMapper">
+    
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.secondhand.marketplace.backend.modules.forum.entity.ForumReport">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="target_type" property="targetType" jdbcType="VARCHAR"/>
+        <result column="target_id" property="targetId" jdbcType="BIGINT"/>
+        <result column="reporter_id" property="reporterId" jdbcType="BIGINT"/>
+        <result column="report_reason" property="reportReason" jdbcType="VARCHAR"/>
+        <result column="report_detail" property="reportDetail" jdbcType="VARCHAR"/>
+        <result column="evidence_urls" property="evidenceUrls" jdbcType="VARCHAR"/>
+        <result column="report_status" property="reportStatus" jdbcType="VARCHAR"/>
+        <result column="handled_by" property="handledBy" jdbcType="BIGINT"/>
+        <result column="handle_result" property="handleResult" jdbcType="VARCHAR"/>
+        <result column="handled_at" property="handledAt" jdbcType="TIMESTAMP"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+    
+    <!-- 基础字段列表 -->
+    <sql id="Base_Column_List">
+        id, target_type, target_id, reporter_id, report_reason, report_detail, evidence_urls,
+        report_status, handled_by, handle_result, handled_at, created_at
+    </sql>
+    
+    <!-- 插入 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO forum_report (target_type, target_id, reporter_id, report_reason, report_detail, evidence_urls,
+                                report_status, handled_by, handle_result, handled_at, created_at)
+        VALUES (#{targetType}, #{targetId}, #{reporterId}, #{reportReason}, #{reportDetail}, #{evidenceUrls},
+                #{reportStatus}, #{handledBy}, #{handleResult}, #{handledAt}, #{createdAt})
+    </insert>
+    
+    <!-- 根据ID删除 -->
+    <delete id="deleteById">
+        DELETE FROM forum_report WHERE id = #{id}
+    </delete>
+    
+    <!-- 根据ID更新 -->
+    <update id="updateById">
+        UPDATE forum_report
+        SET target_type = #{targetType},
+            target_id = #{targetId},
+            reporter_id = #{reporterId},
+            report_reason = #{reportReason},
+            report_detail = #{reportDetail},
+            evidence_urls = #{evidenceUrls},
+            report_status = #{reportStatus},
+            handled_by = #{handledBy},
+            handle_result = #{handleResult},
+            handled_at = #{handledAt}
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_report WHERE id = #{id}
+    </select>
+    
+    <!-- 查询所有举报记录 -->
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_report ORDER BY created_at DESC
+    </select>
+    
+    <!-- 根据目标类型和目标ID查询举报记录 -->
+    <select id="selectByTarget" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_report
+        WHERE target_type = #{targetType} AND target_id = #{targetId}
+        ORDER BY created_at DESC
+    </select>
+    
+    <!-- 根据状态查询举报记录 -->
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_report
+        WHERE report_status = #{reportStatus}
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 根据举报人ID查询举报记录 -->
+    <select id="selectByReporterId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_report
+        WHERE reporter_id = #{reporterId}
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+</mapper>
