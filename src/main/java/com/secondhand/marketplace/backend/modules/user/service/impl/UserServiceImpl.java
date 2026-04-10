@@ -1,6 +1,7 @@
 package com.secondhand.marketplace.backend.modules.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.secondhand.marketplace.backend.common.exception.BusinessException;
 import com.secondhand.marketplace.backend.common.util.JwtUtil;
 import com.secondhand.marketplace.backend.common.util.PasswordUtil;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 
 @Service
 @RequiredArgsConstructor
@@ -234,16 +236,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void unbindPhone(Long userId) {
-        UserAccount user = userAccountMapper.selectById(userId);
-        user.setPhone(null);
-        userAccountMapper.updateById(user);
+        LambdaUpdateWrapper<UserAccount> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(UserAccount::getId, userId)
+                .set(UserAccount::getPhone, null);
+        userAccountMapper.update(null, wrapper);
     }
 
     @Override
     public void unbindEmail(Long userId) {
-        UserAccount user = userAccountMapper.selectById(userId);
-        user.setEmail(null);
-        userAccountMapper.updateById(user);
+        LambdaUpdateWrapper<UserAccount> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(UserAccount::getId, userId)
+                .set(UserAccount::getEmail, null);
+        userAccountMapper.update(null, wrapper);
     }
 
     @Override
