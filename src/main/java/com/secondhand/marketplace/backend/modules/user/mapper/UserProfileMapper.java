@@ -10,4 +10,6 @@ public interface UserProfileMapper extends BaseMapper<UserProfile> {
 
     @Select("SELECT * FROM user_profile WHERE user_id = #{userId}")
     UserProfile findByUserId(Long userId);
+
+
 }

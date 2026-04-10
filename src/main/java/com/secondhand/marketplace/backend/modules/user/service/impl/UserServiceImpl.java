@@ -145,7 +145,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void forgotPassword(String account) {
+    public String forgotPassword(String account) {
         UserAccount user = userAccountMapper.findByAccount(account);
         if (user == null) {
             throw new BusinessException("账号不存在");
@@ -155,6 +155,17 @@ public class UserServiceImpl implements UserService {
         // 这里简化处理，实际应该发送验证码到手机或邮箱
         String resetToken = jwtUtil.generateResetToken(user.getId());
         // TODO: 发送重置链接或验证码
+
+        //模拟：在控制台打印重置连接
+        String resetLink = "http://localhost:8080/reset-password?token=" + resetToken;
+        System.out.println("==========================================");
+        System.out.println("【重置密码】账号：" + account);
+        System.out.println("重置链接：" + resetLink);
+        System.out.println("请使用以下token调用重置接口：");
+        System.out.println(resetToken);
+        System.out.println("==========================================");
+
+        return resetToken;  // 返回token供测试使用
     }
 
     @Override
@@ -256,7 +267,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserProfileVO getUserProfile(Long userId) {
+
         UserProfile profile = userProfileMapper.findByUserId(userId);
+
+
         if (profile == null) {
             throw new BusinessException("用户资料不存在");
         }

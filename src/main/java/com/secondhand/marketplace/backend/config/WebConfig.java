@@ -2,6 +2,7 @@ package com.secondhand.marketplace.backend.config;
 
 import com.secondhand.marketplace.backend.security.LoginInterceptor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -12,12 +13,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  */
 @Configuration
 @RequiredArgsConstructor
+
 public class WebConfig implements WebMvcConfigurer {
 
     private final LoginInterceptor loginInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        System.out.println("========== 注册拦截器 ==========");
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/api/**")  // 拦截所有/api/开头的请求
                 .excludePathPatterns(        // 不拦截以下接口（不需要登录就能访问）
@@ -29,5 +32,6 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/user/reset-password"
                         // 商品、论坛等模块的公开接口后续再加
                 );
+        System.out.println("拦截器已注册，拦截路径: /api/**");
     }
 }

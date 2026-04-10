@@ -13,11 +13,14 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.logging.Logger;
+import lombok.extern.slf4j.Slf4j;
 
 //用户模块
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
+@Slf4j
 public class UserController {
 
     private final UserService userService;
@@ -45,7 +48,7 @@ public class UserController {
 
     //("忘记密码")
     @PostMapping("/forgot-password")
-    public CommonResult<Void> forgotPassword(@RequestParam String account) {
+    public CommonResult<String> forgotPassword(@RequestParam String account) {
         userService.forgotPassword(account);
         return CommonResult.success();
     }
@@ -117,6 +120,7 @@ public class UserController {
     @GetMapping("/profile")
     public CommonResult<UserProfileVO> getUserProfile() {
         Long userId = UserContext.getCurrentUserId();
+        System.out.println("Controller获取到的userId: " + userId);  // 调试用
         return CommonResult.success(userService.getUserProfile(userId));
     }
 

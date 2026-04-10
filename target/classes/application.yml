@@ -36,7 +36,7 @@ mybatis-plus:
   type-aliases-package: com.secondhand.marketplace.backend.modules.*.entity
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 打开 SQL 日志
 
 logging:
   level:
