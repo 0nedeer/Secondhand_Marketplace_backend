@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-08T10:36:53+0800",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.45.0.v20260224-0835, environment: Java 21.0.10 (Eclipse Adoptium)"
+    date = "2026-04-09T21:51:27+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.9 (Oracle Corporation)"
 )
 @Component
 public class UserConverterImpl implements UserConverter {
@@ -23,14 +23,14 @@ public class UserConverterImpl implements UserConverter {
 
         UserInfoVO userInfoVO = new UserInfoVO();
 
+        userInfoVO.setId( entity.getId() );
+        userInfoVO.setUsername( entity.getUsername() );
         userInfoVO.setAvatar( entity.getAvatar() );
         userInfoVO.setBio( entity.getBio() );
-        userInfoVO.setCreatedAt( entity.getCreatedAt() );
         userInfoVO.setCreditScore( entity.getCreditScore() );
-        userInfoVO.setId( entity.getId() );
         userInfoVO.setRole( entity.getRole() );
         userInfoVO.setStatus( entity.getStatus() );
-        userInfoVO.setUsername( entity.getUsername() );
+        userInfoVO.setCreatedAt( entity.getCreatedAt() );
 
         return userInfoVO;
     }

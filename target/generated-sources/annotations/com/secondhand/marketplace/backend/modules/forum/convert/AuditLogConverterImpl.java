@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-08T10:36:53+0800",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.45.0.v20260224-0835, environment: Java 21.0.10 (Eclipse Adoptium)"
+    date = "2026-04-09T21:51:26+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.9 (Oracle Corporation)"
 )
 @Component
 public class AuditLogConverterImpl implements AuditLogConverter {
@@ -23,14 +23,14 @@ public class AuditLogConverterImpl implements AuditLogConverter {
 
         AuditLogVO auditLogVO = new AuditLogVO();
 
-        auditLogVO.setAction( entity.getAction() );
-        auditLogVO.setCreatedAt( entity.getCreatedAt() );
         auditLogVO.setId( entity.getId() );
-        auditLogVO.setNewStatus( entity.getNewStatus() );
-        auditLogVO.setOldStatus( entity.getOldStatus() );
-        auditLogVO.setReason( entity.getReason() );
-        auditLogVO.setTargetId( entity.getTargetId() );
         auditLogVO.setTargetType( entity.getTargetType() );
+        auditLogVO.setTargetId( entity.getTargetId() );
+        auditLogVO.setAction( entity.getAction() );
+        auditLogVO.setReason( entity.getReason() );
+        auditLogVO.setOldStatus( entity.getOldStatus() );
+        auditLogVO.setNewStatus( entity.getNewStatus() );
+        auditLogVO.setCreatedAt( entity.getCreatedAt() );
 
         return auditLogVO;
     }

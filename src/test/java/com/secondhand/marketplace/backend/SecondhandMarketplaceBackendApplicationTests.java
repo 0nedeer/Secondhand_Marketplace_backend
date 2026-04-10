@@ -9,6 +9,6 @@ class SecondhandMarketplaceBackendApplicationTests {
     @Test
     void contextLoads() {
 
-        
+
     }
 }
