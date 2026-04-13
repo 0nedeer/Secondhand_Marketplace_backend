@@ -29,7 +29,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/user/sms-login",
                         "/api/user/sms/send-code",
                         "/api/user/forgot-password",
-                        "/api/user/reset-password"
+                        "/api/user/reset-password",
+                        "/api/payments/callback"
                         // 商品、论坛等模块的公开接口后续再加
                 );
         System.out.println("拦截器已注册，拦截路径: /api/**");

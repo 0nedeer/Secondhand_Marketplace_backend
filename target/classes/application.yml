@@ -6,9 +6,9 @@ spring:
     name: secondhand-marketplace-backend
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/secondhand_trade_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:mysql://localhost:3306/secondhand_marketplace?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
-    password: root
+    password: 987654mdy
     hikari:
       initialization-fail-timeout: -1
 
