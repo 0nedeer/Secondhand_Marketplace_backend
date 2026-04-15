@@ -261,12 +261,17 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("用户不存在");
         }
 
+        // 获取头像URL
+        UserProfile profile = userProfileMapper.findByUserId(user.getId());
+        String avatarUrl = profile != null ? profile.getAvatarUrl() : null;
+
         return UserVO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .nickname(user.getNickname())
                 .phone(user.getPhone())
                 .email(user.getEmail())
+                .avatarUrl(avatarUrl)
                 .userStatus(user.getUserStatus())
                 .lastLoginAt(user.getLastLoginAt())
                 .registeredAt(user.getRegisteredAt())

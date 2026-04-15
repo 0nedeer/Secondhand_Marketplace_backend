@@ -9,14 +9,11 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
-import org.mapstruct.factory.Mappers;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface PostConverter {
-    
-    PostConverter INSTANCE = Mappers.getMapper(PostConverter.class);
     
     /**
      * CreateDTO转Entity

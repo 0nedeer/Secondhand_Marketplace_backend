@@ -16,4 +16,8 @@ public class UserVO {
     private String userStatus;
     private LocalDateTime lastLoginAt;
     private LocalDateTime registeredAt;
+    
+    public String getAvatar() {
+        return avatarUrl;
+    }
 }

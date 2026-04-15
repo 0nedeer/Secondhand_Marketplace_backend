@@ -8,6 +8,9 @@ import com.secondhand.marketplace.backend.modules.forum.entity.*;
 import com.secondhand.marketplace.backend.modules.forum.mapper.*;
 import com.secondhand.marketplace.backend.modules.forum.service.PostService;
 import com.secondhand.marketplace.backend.modules.forum.vo.*;
+import com.secondhand.marketplace.backend.modules.user.service.UserService;
+import com.secondhand.marketplace.backend.modules.user.vo.UserVO;
+import com.secondhand.marketplace.backend.modules.user.vo.UserPermissionsVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,19 +34,17 @@ public class PostServiceImpl implements PostService {
     private final ForumCollectMapper collectMapper;
     private final ForumPostShareMapper shareMapper;
     private final ForumPostViewDailyMapper viewDailyMapper;
-    private final UserMapper userMapper;
     private final ForumTagMapper tagMapper;
     private final ForumCategoryMapper categoryMapper;
     private final PostConverter postConverter;
+    private final UserService userService;
     
     @Override
     public Long createPost(Long userId, PostCreateDTO dto) {
-        // 1. 校验用户是否被禁言
-        User user = userMapper.selectById(userId);
-        if (user.getIsMuted() == 1) {
-            if (user.getMuteExpireAt() != null && user.getMuteExpireAt().isAfter(LocalDateTime.now())) {
-                throw new RuntimeException("您已被禁言，无法发布帖子");
-            }
+        // 1. 校验用户是否被禁用
+        String userStatus = userService.getUserStatus(userId);
+        if ("banned".equals(userStatus)) {
+            throw new RuntimeException("您已被禁用，无法发布帖子");
         }
         
         // 2. DTO转Entity
@@ -79,8 +80,8 @@ public class PostServiceImpl implements PostService {
         
         // 2. 权限校验：只有作者或管理员可以编辑
         if (!post.getAuthorId().equals(userId)) {
-            User user = userMapper.selectById(userId);
-            if (!"admin".equals(user.getRole()) && !"super_admin".equals(user.getRole())) {
+            UserPermissionsVO permissions = userService.getUserPermissions(userId);
+            if (!permissions.getIsAdmin()) {
                 throw new RuntimeException("无权编辑此帖子");
             }
         }
@@ -121,8 +122,8 @@ public class PostServiceImpl implements PostService {
         
         // 权限校验
         if (!post.getAuthorId().equals(userId)) {
-            User user = userMapper.selectById(userId);
-            if (!"admin".equals(user.getRole()) && !"super_admin".equals(user.getRole())) {
+            UserPermissionsVO permissions = userService.getUserPermissions(userId);
+            if (!permissions.getIsAdmin()) {
                 throw new RuntimeException("无权删除此帖子");
             }
         }
@@ -153,15 +154,13 @@ public class PostServiceImpl implements PostService {
         }
         
         // 填充作者信息
-        User author = userMapper.selectById(post.getAuthorId());
-        if (author != null) {
-            UserInfoVO authorInfo = new UserInfoVO();
-            authorInfo.setId(author.getId());
-            authorInfo.setUsername(author.getUsername());
-            authorInfo.setAvatar(author.getAvatar());
-            authorInfo.setBio(author.getBio());
-            authorInfo.setCreditScore(author.getCreditScore());
-            vo.setAuthorInfo(authorInfo);
+        UserVO authorInfo = userService.getUserInfo(post.getAuthorId());
+        if (authorInfo != null) {
+            UserInfoVO authorUserInfo = new UserInfoVO();
+            authorUserInfo.setId(authorInfo.getId());
+            authorUserInfo.setUsername(authorInfo.getUsername());
+            authorUserInfo.setAvatar(authorInfo.getAvatar());
+            vo.setAuthorInfo(authorUserInfo);
         }
         
         // 填充标签列表
@@ -245,10 +244,10 @@ public class PostServiceImpl implements PostService {
             PostListVO vo = postConverter.toListVo(post);
             
             // 填充作者信息
-            User author = userMapper.selectById(post.getAuthorId());
-            if (author != null) {
-                vo.setAuthorName(author.getUsername());
-                vo.setAuthorAvatar(author.getAvatar());
+            UserVO authorInfo = userService.getUserInfo(post.getAuthorId());
+            if (authorInfo != null) {
+                vo.setAuthorName(authorInfo.getUsername());
+                vo.setAuthorAvatar(authorInfo.getAvatar());
             }
             
             // 填充首张图片
@@ -287,10 +286,10 @@ public class PostServiceImpl implements PostService {
         // 转换为VO
         List<PostListVO> voList = posts.stream().map(post -> {
             PostListVO vo = postConverter.toListVo(post);
-            User author = userMapper.selectById(post.getAuthorId());
-            if (author != null) {
-                vo.setAuthorName(author.getUsername());
-                vo.setAuthorAvatar(author.getAvatar());
+            UserVO authorInfo = userService.getUserInfo(post.getAuthorId());
+            if (authorInfo != null) {
+                vo.setAuthorName(authorInfo.getUsername());
+                vo.setAuthorAvatar(authorInfo.getAvatar());
             }
             
             // 填充首张图片

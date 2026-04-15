@@ -7,6 +7,8 @@ import com.secondhand.marketplace.backend.modules.forum.entity.*;
 import com.secondhand.marketplace.backend.modules.forum.mapper.*;
 import com.secondhand.marketplace.backend.modules.forum.service.TagService;
 import com.secondhand.marketplace.backend.modules.forum.vo.TagVO;
+import com.secondhand.marketplace.backend.modules.user.service.UserService;
+import com.secondhand.marketplace.backend.modules.user.vo.UserPermissionsVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,14 +28,14 @@ public class TagServiceImpl implements TagService {
     
     private final ForumTagMapper tagMapper;
     private final ForumFollowTagMapper followTagMapper;
-    private final UserMapper userMapper;
+    private final UserService userService;
     private final TagConverter tagConverter;
     
     @Override
     public Long createTag(Long adminId, TagCreateDTO dto) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限创建标签");
         }
         
@@ -58,8 +60,8 @@ public class TagServiceImpl implements TagService {
     @Override
     public void updateTag(Long adminId, TagUpdateDTO dto) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限更新标签");
         }
         
@@ -88,8 +90,8 @@ public class TagServiceImpl implements TagService {
     @Override
     public void deleteTag(Long adminId, Long tagId) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限删除标签");
         }
         
