@@ -17,6 +17,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+/*商品服务
+import com.secondhand.marketplace.backend.modules.product.entity.Product;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;*/
+/*交易服务*/
 
 @Service
 @RequiredArgsConstructor
@@ -552,6 +556,9 @@ public class UserServiceImpl implements UserService {
     public UserStatsVO getUserStats(Long userId) {
         // 商品数量（需要调用商品模块的service）
         int productCount = 0; // TODO: 调用商品服务
+        /*LambdaQueryWrapper<Product> productWrapper = new LambdaQueryWrapper<>();
+    productWrapper.eq(Product::getSellerId, userId);  // 使用 sellerId
+    int productCount = (int) productService.count(productWrapper);*/
 
         // 订单数量（需要调用交易模块的service）
         int orderCount = 0; // TODO: 调用交易服务
