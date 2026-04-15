@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-08T10:40:18+0800",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.45.0.v20260224-0835, environment: Java 21.0.10 (Eclipse Adoptium)"
+    date = "2026-04-15T22:21:10+0800",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
 )
 @Component
 public class PostConverterImpl implements PostConverter {
@@ -27,10 +27,10 @@ public class PostConverterImpl implements PostConverter {
         ForumPost.ForumPostBuilder forumPost = ForumPost.builder();
 
         forumPost.categoryId( dto.getCategoryId() );
+        forumPost.content( dto.getContent() );
         forumPost.postType( dto.getPostType() );
         forumPost.productId( dto.getProductId() );
         forumPost.title( dto.getTitle() );
-        forumPost.content( dto.getContent() );
 
         forumPost.isDeleted( 0 );
         forumPost.auditStatus( "pending" );
@@ -46,8 +46,8 @@ public class PostConverterImpl implements PostConverter {
         }
 
         entity.setCategoryId( dto.getCategoryId() );
-        entity.setTitle( dto.getTitle() );
         entity.setContent( dto.getContent() );
+        entity.setTitle( dto.getTitle() );
     }
 
     @Override
@@ -58,19 +58,19 @@ public class PostConverterImpl implements PostConverter {
 
         PostVO postVO = new PostVO();
 
-        postVO.setId( entity.getId() );
-        postVO.setTitle( entity.getTitle() );
-        postVO.setContent( entity.getContent() );
-        postVO.setPostType( entity.getPostType() );
-        postVO.setLikeCount( entity.getLikeCount() );
-        postVO.setCommentCount( entity.getCommentCount() );
-        postVO.setShareCount( entity.getShareCount() );
-        postVO.setCollectCount( entity.getCollectCount() );
-        postVO.setViewCount( entity.getViewCount() );
         postVO.setAuditStatus( entity.getAuditStatus() );
-        postVO.setDisplayStatus( entity.getDisplayStatus() );
-        postVO.setPublishedAt( entity.getPublishedAt() );
+        postVO.setCollectCount( entity.getCollectCount() );
+        postVO.setCommentCount( entity.getCommentCount() );
+        postVO.setContent( entity.getContent() );
         postVO.setCreatedAt( entity.getCreatedAt() );
+        postVO.setDisplayStatus( entity.getDisplayStatus() );
+        postVO.setId( entity.getId() );
+        postVO.setLikeCount( entity.getLikeCount() );
+        postVO.setPostType( entity.getPostType() );
+        postVO.setPublishedAt( entity.getPublishedAt() );
+        postVO.setShareCount( entity.getShareCount() );
+        postVO.setTitle( entity.getTitle() );
+        postVO.setViewCount( entity.getViewCount() );
 
         return postVO;
     }
@@ -83,13 +83,13 @@ public class PostConverterImpl implements PostConverter {
 
         PostListVO postListVO = new PostListVO();
 
-        postListVO.setId( entity.getId() );
-        postListVO.setTitle( entity.getTitle() );
-        postListVO.setPostType( entity.getPostType() );
-        postListVO.setLikeCount( entity.getLikeCount() );
         postListVO.setCommentCount( entity.getCommentCount() );
-        postListVO.setViewCount( entity.getViewCount() );
         postListVO.setCreatedAt( entity.getCreatedAt() );
+        postListVO.setId( entity.getId() );
+        postListVO.setLikeCount( entity.getLikeCount() );
+        postListVO.setPostType( entity.getPostType() );
+        postListVO.setTitle( entity.getTitle() );
+        postListVO.setViewCount( entity.getViewCount() );
 
         return postListVO;
     }
