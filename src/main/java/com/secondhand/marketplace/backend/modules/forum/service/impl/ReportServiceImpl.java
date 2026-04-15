@@ -8,6 +8,9 @@ import com.secondhand.marketplace.backend.modules.forum.service.ReportService;
 import com.secondhand.marketplace.backend.modules.forum.vo.PageResult;
 import com.secondhand.marketplace.backend.modules.forum.vo.ReportVO;
 import com.secondhand.marketplace.backend.modules.forum.vo.UserInfoVO;
+import com.secondhand.marketplace.backend.modules.user.service.UserService;
+import com.secondhand.marketplace.backend.modules.user.vo.UserPermissionsVO;
+import com.secondhand.marketplace.backend.modules.user.vo.UserVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +29,7 @@ public class ReportServiceImpl implements ReportService {
     private final ForumReportMapper reportMapper;
     private final ForumPostMapper postMapper;
     private final ForumCommentMapper commentMapper;
-    private final UserMapper userMapper;
+    private final UserService userService;
     private final ReportConverter reportConverter;
     
     @Override
@@ -61,8 +64,8 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public void handleReport(Long adminId, Long reportId, String status, String result) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限处理举报");
         }
         
@@ -106,7 +109,7 @@ public class ReportServiceImpl implements ReportService {
         }
         
         // 填充举报人信息
-        User reporter = userMapper.selectById(report.getReporterId());
+        UserVO reporter = userService.getUserInfo(report.getReporterId());
         if (reporter != null) {
             UserInfoVO reporterInfo = new UserInfoVO();
             reporterInfo.setId(reporter.getId());
@@ -117,7 +120,7 @@ public class ReportServiceImpl implements ReportService {
         
         // 填充处理人信息
         if (report.getHandledBy() != null) {
-            User handler = userMapper.selectById(report.getHandledBy());
+            UserVO handler = userService.getUserInfo(report.getHandledBy());
             if (handler != null) {
                 UserInfoVO handlerInfo = new UserInfoVO();
                 handlerInfo.setId(handler.getId());
@@ -133,8 +136,8 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public PageResult<ReportVO> listReports(Long adminId, String status, Integer pageNum, Integer pageSize) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限查看举报列表");
         }
         
@@ -169,7 +172,7 @@ public class ReportServiceImpl implements ReportService {
             }
             
             // 填充举报人信息
-            User reporter = userMapper.selectById(report.getReporterId());
+            UserVO reporter = userService.getUserInfo(report.getReporterId());
             if (reporter != null) {
                 UserInfoVO reporterInfo = new UserInfoVO();
                 reporterInfo.setId(reporter.getId());

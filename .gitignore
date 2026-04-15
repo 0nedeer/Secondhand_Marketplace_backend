@@ -5,6 +5,7 @@
 
 # Maven build output
 target/
+*.class
 
 # Logs
 logs

@@ -1,4 +1,4 @@
-﻿-- 二手交易平台数据库设计（MySQL 8.0+）
+-- 二手交易平台数据库设计（MySQL 8.0+）
 -- 说明：覆盖买家、卖家、管理员三类角色全流程（商品、聊天、订单、支付、物流、评价、售后、论坛、AI问答、平台治理）
 -- 身份模型：用户默认可同时作为买家/卖家；管理员通过 user_account.is_admin 标识
 
@@ -256,7 +256,9 @@ CREATE TABLE `forum_post` (
     INDEX `idx_published_at` (`published_at`),
     INDEX `idx_last_commented_at` (`last_commented_at`),
     INDEX `idx_is_deleted` (`is_deleted`),
-    FULLTEXT INDEX `idx_ft_title_content` (`title`, `content`)
+    FULLTEXT INDEX `idx_ft_title_content` (`title`, `content`),
+    CONSTRAINT `fk_forum_post_author_id` FOREIGN KEY (`author_id`) REFERENCES `user_account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_forum_post_category_id` FOREIGN KEY (`category_id`) REFERENCES `forum_category` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='论坛帖子表';
 
 -- 6. 帖子与标签关联表
@@ -306,7 +308,10 @@ CREATE TABLE `forum_comment` (
     INDEX `idx_parent_comment_id` (`parent_comment_id`),
     INDEX `idx_commenter_id` (`commenter_id`),
     INDEX `idx_audit_status` (`audit_status`),
-    INDEX `idx_is_deleted` (`is_deleted`)
+    INDEX `idx_is_deleted` (`is_deleted`),
+    CONSTRAINT `fk_forum_comment_post_id` FOREIGN KEY (`post_id`) REFERENCES `forum_post` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_forum_comment_commenter_id` FOREIGN KEY (`commenter_id`) REFERENCES `user_account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_forum_comment_reply_to_user_id` FOREIGN KEY (`reply_to_user_id`) REFERENCES `user_account` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='论坛评论表';
 
 -- 9. 论坛互动表（点赞/踩）
@@ -321,7 +326,8 @@ CREATE TABLE `forum_reaction` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_target_user` (`target_type`, `target_id`, `user_id`),
     INDEX `idx_target` (`target_type`, `target_id`),
-    INDEX `idx_user_id` (`user_id`)
+    INDEX `idx_user_id` (`user_id`),
+    CONSTRAINT `fk_forum_reaction_user_id` FOREIGN KEY (`user_id`) REFERENCES `user_account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='论坛互动表';
 
 -- 10. 论坛收藏数
@@ -334,7 +340,9 @@ CREATE TABLE `forum_collect` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_post` (`user_id`, `post_id`),
     INDEX `idx_user_id` (`user_id`),
-    INDEX `idx_post_id` (`post_id`)
+    INDEX `idx_post_id` (`post_id`),
+    CONSTRAINT `fk_forum_collect_user_id` FOREIGN KEY (`user_id`) REFERENCES `user_account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_forum_collect_post_id` FOREIGN KEY (`post_id`) REFERENCES `forum_post` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='论坛收藏表';
 
 -- 11. 论坛帖子转发数
@@ -347,7 +355,9 @@ CREATE TABLE `forum_post_share` (
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '转发时间',
     PRIMARY KEY (`id`),
     INDEX `idx_post_id` (`post_id`),
-    INDEX `idx_user_id` (`user_id`)
+    INDEX `idx_user_id` (`user_id`),
+    CONSTRAINT `fk_forum_post_share_post_id` FOREIGN KEY (`post_id`) REFERENCES `forum_post` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_forum_post_share_user_id` FOREIGN KEY (`user_id`) REFERENCES `user_account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='论坛帖子转发表';
 
 -- 12. 论坛举报表
@@ -369,7 +379,9 @@ CREATE TABLE `forum_report` (
     INDEX `idx_target` (`target_type`, `target_id`),
     INDEX `idx_reporter_id` (`reporter_id`),
     INDEX `idx_report_status` (`report_status`),
-    INDEX `idx_handled_by` (`handled_by`)
+    INDEX `idx_handled_by` (`handled_by`),
+    CONSTRAINT `fk_forum_report_reporter_id` FOREIGN KEY (`reporter_id`) REFERENCES `user_account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_forum_report_handled_by` FOREIGN KEY (`handled_by`) REFERENCES `user_account` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='论坛举报表';
 
 -- 13. 论坛审核日志表
@@ -387,7 +399,8 @@ CREATE TABLE `forum_audit_log` (
     PRIMARY KEY (`id`),
     INDEX `idx_target` (`target_type`, `target_id`),
     INDEX `idx_auditor_id` (`auditor_id`),
-    INDEX `idx_created_at` (`created_at`)
+    INDEX `idx_created_at` (`created_at`),
+    CONSTRAINT `fk_forum_audit_log_auditor_id` FOREIGN KEY (`auditor_id`) REFERENCES `user_account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='论坛审核日志表';
 
 -- 14. 帖子日浏览统计表
@@ -414,7 +427,9 @@ CREATE TABLE `forum_follow_tag` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_tag` (`user_id`, `tag_id`),
     INDEX `idx_user_id` (`user_id`),
-    INDEX `idx_tag_id` (`tag_id`)
+    INDEX `idx_tag_id` (`tag_id`),
+    CONSTRAINT `fk_forum_follow_tag_user_id` FOREIGN KEY (`user_id`) REFERENCES `user_account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_forum_follow_tag_tag_id` FOREIGN KEY (`tag_id`) REFERENCES `forum_tag` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户关注标签表';
 
 -- ======================================================

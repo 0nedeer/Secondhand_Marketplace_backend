@@ -5,13 +5,10 @@ import com.secondhand.marketplace.backend.modules.forum.entity.ForumReport;
 import com.secondhand.marketplace.backend.modules.forum.vo.ReportVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.factory.Mappers;
 import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface ReportConverter {
-    
-    ReportConverter INSTANCE = Mappers.getMapper(ReportConverter.class);
     
     /**
      * CreateDTO转Entity

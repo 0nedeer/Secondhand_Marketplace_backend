@@ -10,6 +10,9 @@ import com.secondhand.marketplace.backend.modules.forum.vo.AuditLogVO;
 import com.secondhand.marketplace.backend.modules.forum.vo.PageResult;
 import com.secondhand.marketplace.backend.modules.forum.vo.PostListVO;
 import com.secondhand.marketplace.backend.modules.forum.vo.UserInfoVO;
+import com.secondhand.marketplace.backend.modules.user.service.UserService;
+import com.secondhand.marketplace.backend.modules.user.vo.UserVO;
+import com.secondhand.marketplace.backend.modules.user.vo.UserPermissionsVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,15 +32,15 @@ public class AuditServiceImpl implements AuditService {
     private final ForumPostMapper postMapper;
     private final ForumCommentMapper commentMapper;
     private final ForumPostMediaMapper postMediaMapper;
-    private final UserMapper userMapper;
     private final PostConverter postConverter;
     private final AuditLogConverter auditLogConverter;
+    private final UserService userService;
     
     @Override
     public void auditPost(Long adminId, AuditReviewDTO dto) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限审核帖子");
         }
         
@@ -86,8 +89,8 @@ public class AuditServiceImpl implements AuditService {
     @Override
     public void auditComment(Long adminId, AuditReviewDTO dto) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限审核评论");
         }
         
@@ -130,8 +133,8 @@ public class AuditServiceImpl implements AuditService {
     @Override
     public PageResult<PostListVO> getPendingPosts(Long adminId, Integer pageNum, Integer pageSize) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限查看待审核帖子");
         }
         
@@ -145,10 +148,10 @@ public class AuditServiceImpl implements AuditService {
             PostListVO vo = postConverter.toListVo(post);
             
             // 填充作者信息
-            User author = userMapper.selectById(post.getAuthorId());
-            if (author != null) {
-                vo.setAuthorName(author.getUsername());
-                vo.setAuthorAvatar(author.getAvatar());
+            UserVO authorInfo = userService.getUserInfo(post.getAuthorId());
+            if (authorInfo != null) {
+                vo.setAuthorName(authorInfo.getUsername());
+                vo.setAuthorAvatar(authorInfo.getAvatar());
             }
             
             // 填充首张图片
@@ -166,8 +169,8 @@ public class AuditServiceImpl implements AuditService {
     @Override
     public PageResult<AuditLogVO> getAuditLogs(Long adminId, String targetType, Integer pageNum, Integer pageSize) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限查看审核日志");
         }
         
@@ -189,13 +192,13 @@ public class AuditServiceImpl implements AuditService {
             AuditLogVO vo = auditLogConverter.toVo(log);
             
             // 填充审核员信息
-            User auditor = userMapper.selectById(log.getAuditorId());
-            if (auditor != null) {
-                UserInfoVO auditorInfo = new UserInfoVO();
-                auditorInfo.setId(auditor.getId());
-                auditorInfo.setUsername(auditor.getUsername());
-                auditorInfo.setAvatar(auditor.getAvatar());
-                vo.setAuditorInfo(auditorInfo);
+            UserVO auditorInfo = userService.getUserInfo(log.getAuditorId());
+            if (auditorInfo != null) {
+                UserInfoVO auditorUserInfo = new UserInfoVO();
+                auditorUserInfo.setId(auditorInfo.getId());
+                auditorUserInfo.setUsername(auditorInfo.getUsername());
+                auditorUserInfo.setAvatar(auditorInfo.getAvatar());
+                vo.setAuditorInfo(auditorUserInfo);
             }
             
             voList.add(vo);

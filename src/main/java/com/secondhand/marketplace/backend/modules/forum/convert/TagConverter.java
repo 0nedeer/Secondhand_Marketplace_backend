@@ -7,13 +7,10 @@ import com.secondhand.marketplace.backend.modules.forum.vo.TagVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-import org.mapstruct.factory.Mappers;
 import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface TagConverter {
-    
-    TagConverter INSTANCE = Mappers.getMapper(TagConverter.class);
     
     /**
      * CreateDTO转Entity
