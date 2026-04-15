@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-13T11:29:12+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.4 (Oracle Corporation)"
+    date = "2026-04-15T22:21:10+0800",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
 )
 @Component
 public class ReportConverterImpl implements ReportConverter {
@@ -24,11 +24,11 @@ public class ReportConverterImpl implements ReportConverter {
 
         ForumReport.ForumReportBuilder forumReport = ForumReport.builder();
 
-        forumReport.targetType( dto.getTargetType() );
-        forumReport.targetId( dto.getTargetId() );
-        forumReport.reportReason( dto.getReportReason() );
-        forumReport.reportDetail( dto.getReportDetail() );
         forumReport.evidenceUrls( dto.getEvidenceUrls() );
+        forumReport.reportDetail( dto.getReportDetail() );
+        forumReport.reportReason( dto.getReportReason() );
+        forumReport.targetId( dto.getTargetId() );
+        forumReport.targetType( dto.getTargetType() );
 
         forumReport.reportStatus( "pending" );
 
@@ -43,16 +43,16 @@ public class ReportConverterImpl implements ReportConverter {
 
         ReportVO reportVO = new ReportVO();
 
-        reportVO.setId( entity.getId() );
-        reportVO.setTargetType( entity.getTargetType() );
-        reportVO.setTargetId( entity.getTargetId() );
-        reportVO.setReportReason( entity.getReportReason() );
-        reportVO.setReportDetail( entity.getReportDetail() );
-        reportVO.setEvidenceUrls( entity.getEvidenceUrls() );
-        reportVO.setReportStatus( entity.getReportStatus() );
-        reportVO.setHandleResult( entity.getHandleResult() );
         reportVO.setCreatedAt( entity.getCreatedAt() );
+        reportVO.setEvidenceUrls( entity.getEvidenceUrls() );
+        reportVO.setHandleResult( entity.getHandleResult() );
         reportVO.setHandledAt( entity.getHandledAt() );
+        reportVO.setId( entity.getId() );
+        reportVO.setReportDetail( entity.getReportDetail() );
+        reportVO.setReportReason( entity.getReportReason() );
+        reportVO.setReportStatus( entity.getReportStatus() );
+        reportVO.setTargetId( entity.getTargetId() );
+        reportVO.setTargetType( entity.getTargetType() );
 
         return reportVO;
     }

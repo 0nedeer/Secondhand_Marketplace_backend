@@ -1,0 +1,19 @@
+# IDE directories and files
+.idea/
+.vscode/
+*.sw?
+
+# Maven build output
+target/
+
+# Logs
+logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Custom files
+/git_commits.md
+/git_status.bat

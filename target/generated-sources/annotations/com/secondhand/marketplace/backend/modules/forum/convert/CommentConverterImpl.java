@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-13T11:29:12+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.4 (Oracle Corporation)"
+    date = "2026-04-15T22:21:10+0800",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
 )
 @Component
 public class CommentConverterImpl implements CommentConverter {
@@ -25,10 +25,10 @@ public class CommentConverterImpl implements CommentConverter {
 
         ForumComment.ForumCommentBuilder forumComment = ForumComment.builder();
 
-        forumComment.postId( dto.getPostId() );
-        forumComment.parentCommentId( dto.getParentCommentId() );
-        forumComment.replyToUserId( dto.getReplyToUserId() );
         forumComment.content( dto.getContent() );
+        forumComment.parentCommentId( dto.getParentCommentId() );
+        forumComment.postId( dto.getPostId() );
+        forumComment.replyToUserId( dto.getReplyToUserId() );
 
         forumComment.isDeleted( 0 );
         forumComment.auditStatus( "pending" );
@@ -53,11 +53,11 @@ public class CommentConverterImpl implements CommentConverter {
 
         CommentVO commentVO = new CommentVO();
 
-        commentVO.setId( entity.getId() );
         commentVO.setContent( entity.getContent() );
+        commentVO.setCreatedAt( entity.getCreatedAt() );
+        commentVO.setId( entity.getId() );
         commentVO.setLikeCount( entity.getLikeCount() );
         commentVO.setReplyCount( entity.getReplyCount() );
-        commentVO.setCreatedAt( entity.getCreatedAt() );
 
         return commentVO;
     }

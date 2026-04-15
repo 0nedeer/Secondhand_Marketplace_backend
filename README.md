@@ -151,10 +151,8 @@ src
 │                       └── backend
 │                           └── SecondhandMarketplaceBackendApplicationTests.java
 
-test
-└── java
-    └── com
-        └── Secondhand_Marketplace_backend
+├── pom.xml
+└── README.md
 ```
 
 ---
@@ -295,41 +293,3 @@ controller -> service -> mapper
 # 四、目录设计概括
 
 > 采用模块化单体架构。整体上是一个 Spring Boot 应用，但代码组织上按业务拆成用户、商品、交易、论坛等模块。每个模块内部再按照 controller、service、mapper、entity、dto、vo 分层，保证职责清晰。公共能力例如统一返回体、全局异常、JWT、上下文、常量、工具类统一放在 common 和 config 中。这样既保留了单体应用开发和部署简单的优点，又能在代码层面保证模块边界清晰，便于后续扩展和维护。
-
----
-
-# 五、部署配置
-
-## 1. 配置信息
-
-### 数据库连接信息：
-- 主机：218.244.142.223
-- 端口：3306
-- 用户名：root
-- 密码：511923YYrr
-
-## 2. 启动方式
-
-1. 构建 Maven 项目：`mvn clean package -DskipTests`
-2. 运行应用：`java -jar target/secondhand-marketplace-backend-0.0.1-SNAPSHOT.jar`
-
-## 3. MinIO 配置
-
-文件存储服务配置：
-- 端点：http://218.244.142.223:9000
-- 访问密钥：7zDjfOTcpJtwdqMzIRU3
-- 密钥：U3VcHvAzOAN2RG8wckQ1Hg03vn9M7PtktXWRYaV4
-- 桶名称：filebucket
-
-## 4. 数据库初始化
-
-### src/main/resources/sql/lw.sql
-
-包含完整的数据库表结构和初始化数据：
-- 用户表
-- 商品表
-- 商品图片表
-- 交易表
-- 论坛帖子表
-- 论坛评论表
-
