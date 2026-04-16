@@ -1,67 +1,33 @@
-server:
-  port: 8080
-
+# 差异化配置 - 开发环境
 spring:
-  application:
-    name: secondhand-marketplace-backend
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://218.244.142.223:3306/secondhand_marketplace?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
     password: 511923YYrr
-    hikari:
-      initialization-fail-timeout: -1
-
-  # Redis 配置
   data:
     redis:
-      host: localhost
+      host: 218.244.142.223
       port: 6379
-      password:
-      database: 0
-      timeout: 5000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
 
-# 测试配置
-test:
-  enabled: true
-  default-user-id: 10001
-  default-admin-id: 1
-
-mybatis-plus:
-  mapper-locations: classpath*:/mapper/**/*.xml
-  type-aliases-package: com.secondhand.marketplace.backend.modules.*.entity
-  configuration:
-    map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 打开 SQL 日志
-
-logging:
-  level:
-    root: info
-    com.secondhand.marketplace.backend: debug
-
-# JWT 配置
-jwt:
-  secret: "mySecretKeyForJWTTokenGeneration2024VeryLongAndSecure123456"
-  expiration: 86400000  # 24小时（毫秒）
-  reset-expiration: 300000  # 5分钟（毫秒）
-
-# OSS对象存储
+# MinIO配置 - 开发环境
 minio:
   endpoint: http://218.244.142.223:9000
   accessKey: 7zDjfOTcpJtwdqMzIRU3
   secretKey: U3VcHvAzOAN2RG8wckQ1Hg03vn9M7PtktXWRYaV4
   bucketName: filebucket
 
-# CORS 跨域配置
+# 测试配置 - 开发环境
+test:
+  enabled: true
+  default-user-id: 10001
+  default-admin-id: 1
+
+# 日志配置 - 开发环境
+logging:
+  level:
+    com.secondhand.marketplace.backend: debug
+
+# CORS配置 - 开发环境（可选，如需覆盖默认配置）
 cors:
   allowed:
-    origins:
-      - http://218.244.142.223:8080
-      - http://218.244.142.223:3000
-      # 如果有前端部署的域名，在这里添加
-      # - http://frontend-server-ip:port
+    origins: "http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080,http://localhost:5500,http://localhost:5173,http://127.0.0.1:5500,http://127.0.0.1:5173"

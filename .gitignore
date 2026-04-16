@@ -13,8 +13,13 @@ logs
 *.log
 
 # Environment variables
+application-*.yml
+!application-dev.yml      # 保留开发环境标准
+!application-test.yml     # 保留测试环境标准
+!application-prod.yml     # 保留生产环境标准
+!application-demo.yml     # 保留演示环境标准
 .env
-.env.local
+!.env.template
 
 # Custom files
 /git_commits.md
