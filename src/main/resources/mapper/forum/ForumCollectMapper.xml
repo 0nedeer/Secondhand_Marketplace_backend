@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.secondhand.marketplace.backend.modules.forum.mapper.ForumCollectMapper">
+    
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.secondhand.marketplace.backend.modules.forum.entity.ForumCollect">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="post_id" property="postId" jdbcType="BIGINT"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+    
+    <!-- 基础字段列表 -->
+    <sql id="Base_Column_List">
+        id, user_id, post_id, created_at
+    </sql>
+    
+    <!-- 插入 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO forum_collect (user_id, post_id, created_at)
+        VALUES (#{userId}, #{postId}, #{createdAt})
+    </insert>
+    
+    <!-- 根据ID删除 -->
+    <delete id="deleteById">
+        DELETE FROM forum_collect WHERE id = #{id}
+    </delete>
+    
+    <!-- 根据ID更新 -->
+    <update id="updateById">
+        UPDATE forum_collect
+        SET user_id = #{userId},
+            post_id = #{postId},
+            created_at = #{createdAt}
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_collect WHERE id = #{id}
+    </select>
+    
+    <!-- 查询所有收藏记录 -->
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_collect ORDER BY created_at DESC
+    </select>
+    
+    <!-- 根据用户ID查询收藏记录 -->
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_collect
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 根据帖子ID查询收藏记录 -->
+    <select id="selectByPostId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_collect
+        WHERE post_id = #{postId}
+        ORDER BY created_at DESC
+    </select>
+    
+    <!-- 根据用户ID和帖子ID查询收藏记录 -->
+    <select id="selectByUserAndPost" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_collect
+        WHERE user_id = #{userId} AND post_id = #{postId}
+    </select>
+    
+</mapper>

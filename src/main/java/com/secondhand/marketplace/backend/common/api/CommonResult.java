@@ -27,4 +27,8 @@ public class CommonResult<T> {
     public static <T> CommonResult<T> error(String message) {
         return new CommonResult<>(500, message, null);
     }
+
+    public static <T> CommonResult<T> error(long code, String message) {
+        return new CommonResult<>(code, message, null);
+    }
 }

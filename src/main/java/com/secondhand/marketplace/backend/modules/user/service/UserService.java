@@ -17,7 +17,7 @@ public interface UserService {
     void logout(String token);
 
     // 密码管理
-    void forgotPassword(String account);
+    String forgotPassword(String account);
     void resetPassword(ResetPasswordDTO resetPasswordDTO);
     void changePassword(Long userId, ChangePasswordDTO changePasswordDTO);
 

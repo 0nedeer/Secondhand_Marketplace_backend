@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.secondhand.marketplace.backend.modules.forum.mapper.ForumAuditLogMapper">
+    
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.secondhand.marketplace.backend.modules.forum.entity.ForumAuditLog">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="target_type" property="targetType" jdbcType="VARCHAR"/>
+        <result column="target_id" property="targetId" jdbcType="BIGINT"/>
+        <result column="auditor_id" property="auditorId" jdbcType="BIGINT"/>
+        <result column="action" property="action" jdbcType="VARCHAR"/>
+        <result column="reason" property="reason" jdbcType="VARCHAR"/>
+        <result column="old_status" property="oldStatus" jdbcType="VARCHAR"/>
+        <result column="new_status" property="newStatus" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+    
+    <!-- 基础字段列表 -->
+    <sql id="Base_Column_List">
+        id, target_type, target_id, auditor_id, action, reason, old_status, new_status, created_at
+    </sql>
+    
+    <!-- 插入 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO forum_audit_log (target_type, target_id, auditor_id, action, reason, old_status, new_status, created_at)
+        VALUES (#{targetType}, #{targetId}, #{auditorId}, #{action}, #{reason}, #{oldStatus}, #{newStatus}, #{createdAt})
+    </insert>
+    
+    <!-- 根据ID删除 -->
+    <delete id="deleteById">
+        DELETE FROM forum_audit_log WHERE id = #{id}
+    </delete>
+    
+    <!-- 根据ID更新 -->
+    <update id="updateById">
+        UPDATE forum_audit_log
+        SET target_type = #{targetType},
+            target_id = #{targetId},
+            auditor_id = #{auditorId},
+            action = #{action},
+            reason = #{reason},
+            old_status = #{oldStatus},
+            new_status = #{newStatus},
+            created_at = #{createdAt}
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_audit_log WHERE id = #{id}
+    </select>
+    
+    <!-- 查询所有审核日志 -->
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_audit_log ORDER BY created_at DESC
+    </select>
+    
+    <!-- 根据目标类型和目标ID查询审核日志 -->
+    <select id="selectByTarget" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_audit_log
+        WHERE target_type = #{targetType} AND target_id = #{targetId}
+        ORDER BY created_at DESC
+    </select>
+    
+    <!-- 根据审核员ID查询审核日志 -->
+    <select id="selectByAuditorId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM forum_audit_log
+        WHERE auditor_id = #{auditorId}
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+</mapper>

@@ -1,6 +1,7 @@
 package com.secondhand.marketplace.backend.modules.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.secondhand.marketplace.backend.common.exception.BusinessException;
 import com.secondhand.marketplace.backend.common.util.JwtUtil;
 import com.secondhand.marketplace.backend.common.util.PasswordUtil;
@@ -15,6 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+/*商品服务
+import com.secondhand.marketplace.backend.modules.product.entity.Product;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;*/
+/*交易服务*/
 
 @Service
 @RequiredArgsConstructor
@@ -78,7 +84,7 @@ public class UserServiceImpl implements UserService {
         user.setCanBuy(1);
         user.setCanSell(1);
         user.setIsAdmin(0);
-        user.setUserStatus("pending_review");
+        user.setUserStatus("pending");
         user.setRegisteredAt(LocalDateTime.now());
 
         userAccountMapper.insert(user);//插入主表
@@ -145,7 +151,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void forgotPassword(String account) {
+    public String forgotPassword(String account) {
         UserAccount user = userAccountMapper.findByAccount(account);
         if (user == null) {
             throw new BusinessException("账号不存在");
@@ -155,6 +161,17 @@ public class UserServiceImpl implements UserService {
         // 这里简化处理，实际应该发送验证码到手机或邮箱
         String resetToken = jwtUtil.generateResetToken(user.getId());
         // TODO: 发送重置链接或验证码
+
+        //模拟：在控制台打印重置连接
+        String resetLink = "http://localhost:8080/reset-password?token=" + resetToken;
+        System.out.println("==========================================");
+        System.out.println("【重置密码】账号：" + account);
+        System.out.println("重置链接：" + resetLink);
+        System.out.println("请使用以下token调用重置接口：");
+        System.out.println(resetToken);
+        System.out.println("==========================================");
+
+        return resetToken;  // 返回token供测试使用
     }
 
     @Override
@@ -223,16 +240,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void unbindPhone(Long userId) {
-        UserAccount user = userAccountMapper.selectById(userId);
-        user.setPhone(null);
-        userAccountMapper.updateById(user);
+        LambdaUpdateWrapper<UserAccount> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(UserAccount::getId, userId)
+                .set(UserAccount::getPhone, null);
+        userAccountMapper.update(null, wrapper);
     }
 
     @Override
     public void unbindEmail(Long userId) {
-        UserAccount user = userAccountMapper.selectById(userId);
-        user.setEmail(null);
-        userAccountMapper.updateById(user);
+        LambdaUpdateWrapper<UserAccount> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(UserAccount::getId, userId)
+                .set(UserAccount::getEmail, null);
+        userAccountMapper.update(null, wrapper);
     }
 
     @Override
@@ -242,12 +261,17 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("用户不存在");
         }
 
+        // 获取头像URL
+        UserProfile profile = userProfileMapper.findByUserId(user.getId());
+        String avatarUrl = profile != null ? profile.getAvatarUrl() : null;
+
         return UserVO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .nickname(user.getNickname())
                 .phone(user.getPhone())
                 .email(user.getEmail())
+                .avatarUrl(avatarUrl)
                 .userStatus(user.getUserStatus())
                 .lastLoginAt(user.getLastLoginAt())
                 .registeredAt(user.getRegisteredAt())
@@ -256,7 +280,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserProfileVO getUserProfile(Long userId) {
+
         UserProfile profile = userProfileMapper.findByUserId(userId);
+
+
         if (profile == null) {
             throw new BusinessException("用户资料不存在");
         }
@@ -534,6 +561,9 @@ public class UserServiceImpl implements UserService {
     public UserStatsVO getUserStats(Long userId) {
         // 商品数量（需要调用商品模块的service）
         int productCount = 0; // TODO: 调用商品服务
+        /*LambdaQueryWrapper<Product> productWrapper = new LambdaQueryWrapper<>();
+    productWrapper.eq(Product::getSellerId, userId);  // 使用 sellerId
+    int productCount = (int) productService.count(productWrapper);*/
 
         // 订单数量（需要调用交易模块的service）
         int orderCount = 0; // TODO: 调用交易服务

@@ -1,2 +1,26 @@
-target
-.vscode
+# IDE directories and files
+.idea/
+.vscode/
+*.sw?
+
+# Maven build output
+target/
+*.class
+.mybatis/
+
+# Logs
+logs
+*.log
+
+# Environment variables
+application-*.yml
+!application-dev.yml
+!application-test.yml
+!application-prod.yml
+!application-demo.yml
+.env
+!.env.template
+
+# Custom files
+/git_commits.md
+/git_status.bat
