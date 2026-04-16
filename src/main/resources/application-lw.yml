@@ -6,9 +6,9 @@ spring:
     name: secondhand-marketplace-backend
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/secondhand_marketplace?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:mysql://218.244.142.223:3306/secondhand_marketplace?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
-    password: 
+    password: 511923YYrr
     hikari:
       initialization-fail-timeout: -1
 
@@ -28,7 +28,7 @@ spring:
 
 # 测试配置
 test:
-  enabled: false
+  enabled: true
   default-user-id: 10001
   default-admin-id: 1
 
@@ -42,7 +42,7 @@ mybatis-plus:
 logging:
   level:
     root: info
-    com.secondhand.marketplace.backend: info
+    com.secondhand.marketplace.backend: debug
 
 # JWT 配置
 jwt:
@@ -57,12 +57,11 @@ minio:
   secretKey: U3VcHvAzOAN2RG8wckQ1Hg03vn9M7PtktXWRYaV4
   bucketName: filebucket
 
-# CORS 跨域配置（本地开发环境）
+# CORS 跨域配置
 cors:
   allowed:
     origins:
-      - http://localhost:3000
-      - http://localhost:3001
-      - http://localhost:8080
-      - http://127.0.0.1:3000
-      - http://127.0.0.1:8080
+      - http://218.244.142.223:8080
+      - http://218.244.142.223:3000
+      # 如果有前端部署的域名，在这里添加
+      # - http://frontend-server-ip:port
