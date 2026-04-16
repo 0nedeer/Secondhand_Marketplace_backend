@@ -46,6 +46,7 @@ com\secondhand\marketplace\backend\modules\forum\service\TagService.class
 com\secondhand\marketplace\backend\modules\user\service\impl\SmsServiceImpl.class
 com\secondhand\marketplace\backend\modules\user\vo\LoginVO.class
 com\secondhand\marketplace\backend\modules\user\vo\UserProfileVO$UserProfileVOBuilder.class
+com\secondhand\marketplace\backend\modules\forum\service\impl\CategoryServiceImpl.class
 com\secondhand\marketplace\backend\modules\user\vo\ReputationVO$ReputationVOBuilder.class
 com\secondhand\marketplace\backend\modules\forum\vo\TagVO.class
 com\secondhand\marketplace\backend\modules\trade\dto\CreateOrderRequest.class
@@ -89,6 +90,7 @@ com\secondhand\marketplace\backend\modules\forum\dto\PostSearchDTO.class
 com\secondhand\marketplace\backend\modules\trade\mapper\TradeProductMapper.class
 com\secondhand\marketplace\backend\modules\aftersale\entity\AfterSaleEvidence.class
 com\secondhand\marketplace\backend\modules\forum\mapper\ForumReportMapper.class
+com\secondhand\marketplace\backend\modules\forum\convert\CategoryConverter.class
 com\secondhand\marketplace\backend\modules\forum\entity\ForumCategory$ForumCategoryBuilder.class
 com\secondhand\marketplace\backend\modules\wallet\service\WalletService.class
 com\secondhand\marketplace\backend\modules\trade\vo\OrderStatusLogVO.class
