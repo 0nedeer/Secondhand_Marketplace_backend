@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-16T00:31:45+0800",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
+    date = "2026-04-16T09:14:29+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.2 (Oracle Corporation)"
 )
 @Component
 public class AdminLogConverterImpl implements AdminLogConverter {
@@ -23,13 +23,13 @@ public class AdminLogConverterImpl implements AdminLogConverter {
 
         AdminLogVO adminLogVO = new AdminLogVO();
 
-        adminLogVO.setAction( entity.getAction() );
-        adminLogVO.setCreatedAt( entity.getCreatedAt() );
         adminLogVO.setId( entity.getId() );
-        adminLogVO.setIpAddress( entity.getIpAddress() );
-        adminLogVO.setReason( entity.getReason() );
-        adminLogVO.setTargetId( entity.getTargetId() );
         adminLogVO.setTargetType( entity.getTargetType() );
+        adminLogVO.setTargetId( entity.getTargetId() );
+        adminLogVO.setAction( entity.getAction() );
+        adminLogVO.setReason( entity.getReason() );
+        adminLogVO.setIpAddress( entity.getIpAddress() );
+        adminLogVO.setCreatedAt( entity.getCreatedAt() );
 
         return adminLogVO;
     }

@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-16T00:31:46+0800",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
+    date = "2026-04-16T09:14:29+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.2 (Oracle Corporation)"
 )
 @Component
 public class TagConverterImpl implements TagConverter {
@@ -25,9 +25,9 @@ public class TagConverterImpl implements TagConverter {
 
         ForumTag.ForumTagBuilder forumTag = ForumTag.builder();
 
-        forumTag.sortOrder( dto.getSortOrder() );
-        forumTag.tagIcon( dto.getTagIcon() );
         forumTag.tagName( dto.getTagName() );
+        forumTag.tagIcon( dto.getTagIcon() );
+        forumTag.sortOrder( dto.getSortOrder() );
 
         forumTag.isEnabled( 1 );
 
@@ -40,10 +40,10 @@ public class TagConverterImpl implements TagConverter {
             return;
         }
 
-        entity.setIsEnabled( dto.getIsEnabled() );
-        entity.setSortOrder( dto.getSortOrder() );
-        entity.setTagIcon( dto.getTagIcon() );
         entity.setTagName( dto.getTagName() );
+        entity.setTagIcon( dto.getTagIcon() );
+        entity.setSortOrder( dto.getSortOrder() );
+        entity.setIsEnabled( dto.getIsEnabled() );
     }
 
     @Override
@@ -55,9 +55,9 @@ public class TagConverterImpl implements TagConverter {
         TagVO tagVO = new TagVO();
 
         tagVO.setId( entity.getId() );
-        tagVO.setSortOrder( entity.getSortOrder() );
-        tagVO.setTagIcon( entity.getTagIcon() );
         tagVO.setTagName( entity.getTagName() );
+        tagVO.setTagIcon( entity.getTagIcon() );
+        tagVO.setSortOrder( entity.getSortOrder() );
 
         return tagVO;
     }
