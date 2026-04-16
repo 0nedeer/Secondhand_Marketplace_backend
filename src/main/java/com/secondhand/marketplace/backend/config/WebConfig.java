@@ -12,9 +12,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Web配置
- */
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
@@ -22,12 +19,11 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final LoginInterceptor loginInterceptor;
 
-    // 从配置文件读取允许的域名（生产环境必须配置）
-    @Value("${cors.allowed.origins:http://localhost:3000,http://localhost:8080}")
+    @Value("${cors.allowed.origins:http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080}")
     private String[] allowedOrigins;
-
+    
     // 公开接口列表（不需要登录）
-    private static final List<String> PUBLIC_PATHS = Arrays.asList(
+    private static final List<String> publicPaths = Arrays.asList(
             "/api/user/register",
             "/api/user/login",
             "/api/user/sms-login",
@@ -36,10 +32,20 @@ public class WebConfig implements WebMvcConfigurer {
             "/api/user/reset-password",
             "/api/payments/callback",
             "/api/products/public/**",      // 商品公开接口
+            "/api/products/list",
+            "/api/products/detail/**",
             "/api/forum/public/**",         // 论坛公开接口
+            "/api/forum/post/list",
+            "/api/forum/post/**",
+            "/api/forum/comment/post/**",
             "/swagger-ui/**",               // Swagger文档
             "/v3/api-docs/**",              // API文档
-            "/doc.html"                     // Knife4j文档
+            "/doc.html",                    // Knife4j文档
+            "/swagger-resources/**",
+            "/webjars/**",
+            "/error",                       // 错误路径
+            "/static/**",                   // 静态资源
+            "/uploads/**"                    // 上传文件访问
     );
 
     @Override
@@ -47,29 +53,25 @@ public class WebConfig implements WebMvcConfigurer {
         log.info("========== 注册登录拦截器 ==========");
         
         registry.addInterceptor(loginInterceptor)
-                .addPathPatterns("/api/**")                    // 拦截所有API请求
-                .excludePathPatterns(PUBLIC_PATHS)             // 排除公开接口
-                .excludePathPatterns("/error")                 // 排除错误路径
-                .excludePathPatterns("/static/**")             // 排除静态资源
-                .excludePathPatterns("/uploads/**");           // 排除上传文件访问
+                .addPathPatterns("/api/**")
+                .excludePathPatterns(publicPaths);
         
-        log.info("拦截器注册成功，拦截路径: /api/**");
-        log.info("公开接口数量: {}", PUBLIC_PATHS.size());
+        log.info("拦截器注册成功，公开接口数量: {}", publicPaths.size());
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        log.info("配置CORS跨域规则");
+        log.info("========== 配置CORS跨域规则 ==========");
+        log.info("配置的允许域名: {}", Arrays.toString(allowedOrigins));
         
         registry.addMapping("/**")
-                // 生产环境必须指定具体域名，开发环境可以用通配符
-                .allowedOrigins(allowedOrigins)
+                .allowedOriginPatterns(allowedOrigins)  // 使用allowedOriginPatterns支持通配符
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600)
-                .exposedHeaders("Authorization", "X-Total-Count");
+                .exposedHeaders("Authorization", "X-Total-Count", "X-Token");
         
-        log.info("CORS配置完成，允许的域名: {}", Arrays.toString(allowedOrigins));
+        log.info("CORS配置完成");
     }
 }

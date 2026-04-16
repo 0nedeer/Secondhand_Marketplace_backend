@@ -4,6 +4,7 @@ import com.secondhand.marketplace.backend.modules.forum.convert.PostConverter;
 import com.secondhand.marketplace.backend.modules.forum.dto.PostCreateDTO;
 import com.secondhand.marketplace.backend.modules.forum.dto.PostSearchDTO;
 import com.secondhand.marketplace.backend.modules.forum.dto.PostUpdateDTO;
+import com.secondhand.marketplace.backend.modules.forum.dto.MediaDTO;
 import com.secondhand.marketplace.backend.modules.forum.entity.*;
 import com.secondhand.marketplace.backend.modules.forum.mapper.*;
 import com.secondhand.marketplace.backend.modules.forum.service.PostService;
@@ -63,6 +64,22 @@ public class PostServiceImpl implements PostService {
                         .createdAt(LocalDateTime.now())
                         .build();
                 postTagMapper.insert(postTag);
+            }
+        }
+        
+        // 5. 保存媒体文件
+        if (dto.getMediaList() != null && !dto.getMediaList().isEmpty()) {
+            int sortNo = 1;
+            for (MediaDTO mediaDTO : dto.getMediaList()) {
+                ForumPostMedia postMedia = ForumPostMedia.builder()
+                        .postId(post.getId())
+                        .mediaType(mediaDTO.getType())
+                        .mediaUrl(mediaDTO.getUrl())
+                        .coverUrl(mediaDTO.getUrl()) // 暂时使用媒体URL作为封面URL
+                        .sortNo(sortNo++)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+                postMediaMapper.insert(postMedia);
             }
         }
         
