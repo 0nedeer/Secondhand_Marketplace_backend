@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import com.secondhand.marketplace.backend.modules.forum.dto.MediaDTO;
 
 @Data
 @Schema(description = "发布新帖子时使用的参数")
@@ -33,4 +34,7 @@ public class PostCreateDTO {
     
     @Schema(description = "关联商品ID（售卖帖必填）", example = "10001")
     private Long productId;
+    
+    @Schema(description = "媒体文件列表", example = "[{\"type\": \"image\", \"url\": \"http://example.com/image.jpg\"}]")
+    private List<MediaDTO> mediaList;
 }
