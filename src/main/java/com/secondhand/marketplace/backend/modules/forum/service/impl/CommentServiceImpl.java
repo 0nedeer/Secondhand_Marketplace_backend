@@ -1,5 +1,6 @@
 package com.secondhand.marketplace.backend.modules.forum.service.impl;
 
+import com.secondhand.marketplace.backend.common.exception.BusinessException;
 import com.secondhand.marketplace.backend.modules.forum.convert.CommentConverter;
 import com.secondhand.marketplace.backend.modules.forum.dto.CommentCreateDTO;
 import com.secondhand.marketplace.backend.modules.forum.dto.CommentUpdateDTO;
@@ -60,7 +61,17 @@ public class CommentServiceImpl implements CommentService {
         ForumComment comment = commentConverter.toEntity(dto);
         comment.setCommenterId(userId);
         
-        // 5. 保存评论
+        // 5. 设置父评论ID默认值（0表示顶级评论）
+        if (comment.getParentCommentId() == null) {
+            comment.setParentCommentId(0L);
+        }
+        
+        // 6. 设置时间戳
+        LocalDateTime now = LocalDateTime.now();
+        comment.setCreatedAt(now);
+        comment.setUpdatedAt(now);
+        
+        // 7. 保存评论
         commentMapper.insert(comment);
         
         // 6. 更新帖子评论数
@@ -94,7 +105,7 @@ public class CommentServiceImpl implements CommentService {
         if (!comment.getCommenterId().equals(userId)) {
             UserPermissionsVO permissions = userService.getUserPermissions(userId);
             if (!permissions.getIsAdmin()) {
-                throw new RuntimeException("无权编辑此评论");
+                throw new BusinessException(403, "无权限编辑此评论");
             }
         }
         
@@ -122,7 +133,7 @@ public class CommentServiceImpl implements CommentService {
         if (!comment.getCommenterId().equals(userId)) {
             UserPermissionsVO permissions = userService.getUserPermissions(userId);
             if (!permissions.getIsAdmin()) {
-                throw new RuntimeException("无权删除此评论");
+                throw new BusinessException(403, "无权限删除此评论");
             }
         }
         
@@ -367,9 +378,15 @@ public class CommentServiceImpl implements CommentService {
     
     @Override
     public void auditComment(Long adminId, Long commentId, Boolean approved, String rejectReason) {
+        // 权限校验
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
+            throw new BusinessException(403, "无权限审核评论");
+        }
+        
         ForumComment comment = commentMapper.selectById(commentId);
         if (comment == null) {
-            throw new RuntimeException("评论不存在");
+            throw new BusinessException(404, "评论不存在");
         }
         
         if (approved) {

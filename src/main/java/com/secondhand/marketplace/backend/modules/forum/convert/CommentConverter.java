@@ -17,8 +17,8 @@ public interface CommentConverter {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "commenterId", ignore = true)
-    @Mapping(target = "likeCount", ignore = true)
-    @Mapping(target = "replyCount", ignore = true)
+    @Mapping(target = "likeCount", constant = "0")
+    @Mapping(target = "replyCount", constant = "0")
     @Mapping(target = "isDeleted", constant = "0")
     @Mapping(target = "auditStatus", constant = "pending")
     @Mapping(target = "createdAt", ignore = true)

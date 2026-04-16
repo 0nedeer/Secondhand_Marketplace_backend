@@ -1,5 +1,6 @@
 package com.secondhand.marketplace.backend.modules.forum.service.impl;
 
+import com.secondhand.marketplace.backend.common.exception.BusinessException;
 import com.secondhand.marketplace.backend.modules.forum.convert.AuditLogConverter;
 import com.secondhand.marketplace.backend.modules.forum.convert.PostConverter;
 import com.secondhand.marketplace.backend.modules.forum.dto.AuditReviewDTO;
@@ -91,13 +92,13 @@ public class AuditServiceImpl implements AuditService {
         // 权限校验
         UserPermissionsVO permissions = userService.getUserPermissions(adminId);
         if (!permissions.getIsAdmin()) {
-            throw new RuntimeException("无权限审核评论");
+            throw new BusinessException(403, "无权限审核评论");
         }
         
         // 校验评论是否存在
         ForumComment comment = commentMapper.selectById(dto.getTargetId());
         if (comment == null) {
-            throw new RuntimeException("评论不存在");
+            throw new BusinessException(404, "评论不存在");
         }
         
         // 记录旧状态
