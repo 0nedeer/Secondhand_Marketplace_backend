@@ -1,7 +1,6 @@
 package com.secondhand.marketplace.backend.common.controller;
 
 import com.secondhand.marketplace.backend.common.util.MinioUtil;
-import com.secondhand.marketplace.backend.modules.user.vo.LoginVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

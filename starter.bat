@@ -1,7 +1,13 @@
 @echo off
 
-rem Set the active profile to lw
+rem Set default profile to lw
 set "SPRING_PROFILES_ACTIVE=lw"
+
+rem Check if a profile parameter was provided
+if "%~1" neq "" (
+    set "SPRING_PROFILES_ACTIVE=%~1"
+    echo Profile provided: %SPRING_PROFILES_ACTIVE%
+)
 
 echo ==== Starting Secondhand Marketplace Backend ====
 echo Using profile: %SPRING_PROFILES_ACTIVE%

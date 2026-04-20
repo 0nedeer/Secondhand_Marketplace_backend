@@ -106,6 +106,10 @@ public class ForumPostController {
     public Result<PostVO> getPostDetail(
             @PathVariable @NotNull Long postId) {
         Long userId = getCurrentUserId();
+        if (userId == null) {
+            log.warn("用户未登录，返回401错误");
+            return Result.error(401, "请先登录");
+        }
         PostVO vo = postService.getPostDetail(userId, postId);
         if (vo == null) {
             return Result.error(404, "帖子不存在");
@@ -118,6 +122,10 @@ public class ForumPostController {
     public Result<PageResult<PostListVO>> listPosts(
             @RequestBody PostSearchDTO searchDTO) {
         Long userId = getCurrentUserId();
+        if (userId == null) {
+            log.warn("用户未登录，返回401错误");
+            return Result.error(401, "请先登录");
+        }
         PageResult<PostListVO> result = postService.listPosts(userId, searchDTO);
         return Result.success(result);
     }
@@ -129,6 +137,10 @@ public class ForumPostController {
             @RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
             @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
         Long userId = getCurrentUserId();
+        if (userId == null) {
+            log.warn("用户未登录，返回401错误");
+            return Result.error(401, "请先登录");
+        }
         PageResult<PostListVO> result = postService.listUserPosts(userId, authorId, pageNum, pageSize);
         return Result.success(result);
     }
