@@ -68,9 +68,6 @@ cors:
     - /api/products/public/**
     - /api/products/list
     - /api/products/detail/**
-    - /api/forum/public/**
-    - /api/forum/posts/list
-    - /api/forum/posts/detail/**
     - /swagger-ui/**
     - /v3/api-docs/**
     - /doc.html

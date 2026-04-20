@@ -3,6 +3,7 @@ package com.secondhand.marketplace.backend.common.util;
 import com.secondhand.marketplace.backend.common.exception.BusinessException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +11,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Component
 public class JwtUtil {
 
@@ -97,25 +99,48 @@ public class JwtUtil {
         String cleanToken = token;
         if (cleanToken != null && cleanToken.startsWith("Bearer ")) {
             cleanToken = cleanToken.substring(7);
+            log.debug("移除Bearer前缀，token长度: {}", cleanToken.length());
         }
 
         // 检查黑名单
         if (isBlacklisted(cleanToken)) {
+            log.warn("Token在黑名单中: {}", cleanToken.length() > 20 ? cleanToken.substring(0, 20) + "..." : cleanToken);
             throw new BusinessException("Token已被注销");
         }
 
         try {
+            log.debug("开始解析token，签名密钥长度: {}", getSigningKey().getEncoded().length);
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(getSigningKey())
                     .build()
                     .parseClaimsJws(cleanToken)
                     .getBody();
 
+            log.debug("Token解析成功，Subject: {}, 过期时间: {}", claims.getSubject(), claims.getExpiration());
+            
+            // 检查token是否过期
+            Date now = new Date();
+            if (claims.getExpiration().before(now)) {
+                log.warn("Token已过期，当前时间: {}, 过期时间: {}", now, claims.getExpiration());
+                throw new BusinessException("Token已过期");
+            }
+            
             return Long.parseLong(claims.getSubject());
         } catch (ExpiredJwtException e) {
+            log.warn("Token过期: {}", e.getMessage());
             throw new BusinessException("Token已过期");
+        } catch (SignatureException e) {
+            log.warn("Token签名无效: {}", e.getMessage());
+            throw new BusinessException("Token签名无效");
+        } catch (MalformedJwtException e) {
+            log.warn("Token格式错误: {}", e.getMessage());
+            throw new BusinessException("Token格式错误");
         } catch (JwtException e) {
+            log.warn("Token无效: {}", e.getMessage());
             throw new BusinessException("Token无效");
+        } catch (Exception e) {
+            log.error("Token解析异常: {}", e.getMessage(), e);
+            throw new BusinessException("Token解析异常");
         }
     }
 

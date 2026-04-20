@@ -24,3 +24,4 @@ application-*.yml
 # Custom files
 /git_commits.md
 /git_status.bat
+/GitCommits-SpringBoot.md

@@ -33,21 +33,23 @@ public class ForumPostController {
     private final TestConfig testConfig;
 
     /**
-     * 获取当前登录用户ID（从上下文或Token中获取）
-     * 注：根据项目实际认证方式调整
+     * 获取当前登录用户ID（从上下文获取）
      */
     private Long getCurrentUserId() {
         // 从UserContext获取当前登录用户ID
         Long userId = UserContext.getCurrentUserId();
         if (userId != null) {
+            log.info("从UserContext获取到用户ID: {}", userId);
             return userId;
         }
         
         // 测试模式：使用默认用户ID
         if (testConfig.isEnabled()) {
+            log.info("测试模式启用，使用默认用户ID: {}", testConfig.getDefaultUserId());
             return testConfig.getDefaultUserId();
         }
         
+        log.warn("未获取到用户ID");
         return null;
     }
 
@@ -55,11 +57,17 @@ public class ForumPostController {
     @Operation(summary = "发布帖子")
     public Result<Long> createPost(
             @Valid @RequestBody PostCreateDTO dto) {
+        log.info("收到发布帖子请求");
+        log.info("请求体: {}", dto);
         Long userId = getCurrentUserId();
+        log.info("获取到的用户ID: {}", userId);
         if (userId == null) {
+            log.warn("用户未登录，返回401错误");
             return Result.error(401, "请先登录");
         }
+        log.info("用户已登录，开始创建帖子");
         Long postId = postService.createPost(userId, dto);
+        log.info("帖子创建成功，ID: {}", postId);
         return Result.success(postId);
     }
 

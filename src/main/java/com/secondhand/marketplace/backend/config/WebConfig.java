@@ -8,12 +8,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
 @Configuration
+@EnableWebMvc
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
@@ -34,10 +36,6 @@ public class WebConfig implements WebMvcConfigurer {
             "/api/products/public/**",      // 商品公开接口
             "/api/products/list",
             "/api/products/detail/**",
-            "/api/forum/public/**",         // 论坛公开接口
-            "/api/forum/post/list",
-            "/api/forum/post/**",
-            "/api/forum/comment/post/**",
             "/swagger-ui/**",               // Swagger文档
             "/v3/api-docs/**",              // API文档
             "/doc.html",                    // Knife4j文档
@@ -52,11 +50,14 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         log.info("========== 注册登录拦截器 ==========");
         
+        // 先添加拦截器，确保它能拦截所有API请求
         registry.addInterceptor(loginInterceptor)
-                .addPathPatterns("/api/**")
+                .addPathPatterns("/**")
                 .excludePathPatterns(publicPaths);
         
         log.info("拦截器注册成功，公开接口数量: {}", publicPaths.size());
+        log.info("拦截器路径模式: /**");
+        log.info("拦截器将拦截所有非公开接口的请求");
     }
 
     @Override

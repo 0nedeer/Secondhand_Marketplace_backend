@@ -18,7 +18,7 @@ minio:
 
 # 测试配置 - 开发环境
 test:
-  enabled: true
+  enabled: false
   default-user-id: 10001
   default-admin-id: 1
 
