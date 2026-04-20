@@ -19,6 +19,10 @@ application-*.yml
 !application-prod.yml     # 保留生产环境标准
 !application-demo.yml     # 保留演示环境标准
 !application-template.yml # 保留配置模板文件
+.env
+!.env.template
 
 # Custom files
 /GitCommits-SpringBoot.md
+/git_commits.md
+/git_status.bat
