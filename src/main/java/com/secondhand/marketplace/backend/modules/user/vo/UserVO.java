@@ -16,4 +16,9 @@ public class UserVO {
     private String userStatus;
     private LocalDateTime lastLoginAt;
     private LocalDateTime registeredAt;
+    private Integer isAdmin;
+
+    public String getRole() {
+        return isAdmin != null && isAdmin == 1 ? "ADMIN" : "USER";
+    }
 }

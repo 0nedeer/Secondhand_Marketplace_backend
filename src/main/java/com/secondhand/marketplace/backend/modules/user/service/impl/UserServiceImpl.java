@@ -130,6 +130,7 @@ public class UserServiceImpl implements UserService {
                 .phone(user.getPhone())
                 .email(user.getEmail())
                 .userStatus(user.getUserStatus())
+                .isAdmin(user.getIsAdmin())
                 .lastLoginAt(LocalDateTime.now())
                 .registeredAt(user.getRegisteredAt())
                 .build();
@@ -264,6 +265,7 @@ public class UserServiceImpl implements UserService {
                 .phone(user.getPhone())
                 .email(user.getEmail())
                 .userStatus(user.getUserStatus())
+                .isAdmin(user.getIsAdmin())
                 .lastLoginAt(user.getLastLoginAt())
                 .registeredAt(user.getRegisteredAt())
                 .build();
@@ -709,6 +711,7 @@ public class UserServiceImpl implements UserService {
                 .email(user.getEmail())
                 .avatarUrl(avatarUrl)
                 .userStatus(user.getUserStatus())
+                .isAdmin(user.getIsAdmin())
                 .lastLoginAt(LocalDateTime.now())
                 .registeredAt(user.getRegisteredAt())
                 .build();
