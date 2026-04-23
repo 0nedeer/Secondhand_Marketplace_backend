@@ -3,6 +3,7 @@ package com.secondhand.marketplace.backend.modules.user.controller;
 import com.secondhand.marketplace.backend.common.api.CommonResult;
 import com.secondhand.marketplace.backend.common.context.UserContext;
 import com.secondhand.marketplace.backend.modules.user.service.UserService;
+import com.secondhand.marketplace.backend.modules.user.vo.AdminUserPageVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +16,18 @@ import org.springframework.web.bind.annotation.*;
 public class AdminUserController {
 
     private final UserService userService;
+
+
+    @GetMapping("/page")
+    public CommonResult<AdminUserPageVO> pageUsers(@RequestParam(required = false) Boolean isAdmin,
+                                                   @RequestParam(required = false) Boolean canBuy,
+                                                   @RequestParam(required = false) Boolean canSell,
+                                                   @RequestParam(required = false, name = "status") String userStatus,
+                                                   @RequestParam(defaultValue = "1") long page,
+                                                   @RequestParam(defaultValue = "20") long pageSize) {
+        Long adminId = UserContext.getCurrentUserId();
+        return CommonResult.success(userService.pageUsers(adminId, isAdmin, canBuy, canSell, userStatus, page, pageSize));
+    }
 
 
     @PutMapping("/ban/{id}")
