@@ -10,6 +10,7 @@ import com.secondhand.marketplace.backend.modules.product.dto.ProductPageQueryDT
 import com.secondhand.marketplace.backend.modules.product.dto.ProductUpdateDTO;
 import com.secondhand.marketplace.backend.modules.product.entity.Product;
 import com.secondhand.marketplace.backend.modules.product.entity.ProductImage;
+import com.secondhand.marketplace.backend.modules.product.mapper.CategoryMapper;
 import com.secondhand.marketplace.backend.modules.product.mapper.ProductMapper;
 import com.secondhand.marketplace.backend.modules.product.service.ProductImageService;
 import com.secondhand.marketplace.backend.modules.product.service.ProductService;
@@ -33,18 +34,30 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Autowired
     private ProductImageService productImageService;
 
+    @Autowired
+    private CategoryMapper categoryMapper;
+
     @Override
-    public void addViewCount(Long id) {
+    public boolean addViewCount(Long id) {
         Product p = this.getById(id);
-        if (p != null) {
-            p.setViewCount((p.getViewCount() == null ? 0 : p.getViewCount()) + 1);
-            this.updateById(p);
+        if (p == null) {
+            return false;
         }
+        p.setViewCount((p.getViewCount() == null ? 0 : p.getViewCount()) + 1);  
+        this.updateById(p);
+        return true;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ProductVO createProduct(ProductCreateDTO dto, Long sellerId) {
+        if (dto.getCategoryId() != null) {
+            com.secondhand.marketplace.backend.modules.product.entity.Category category = categoryMapper.selectById(dto.getCategoryId());
+            if (category == null) {
+                throw new BusinessException(400, "指定的商品分类不存在");
+            }
+        }
+
         Product product = new Product();
         BeanUtils.copyProperties(dto, product);
         product.setSellerId(sellerId);
@@ -68,9 +81,16 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ProductVO updateProduct(ProductUpdateDTO dto, Long sellerId) {
+        if (dto.getCategoryId() != null) {
+            com.secondhand.marketplace.backend.modules.product.entity.Category category = categoryMapper.selectById(dto.getCategoryId());
+            if (category == null) {
+                throw new BusinessException(400, "指定的商品分类不存在");
+            }
+        }
+
         Product existing = this.getById(dto.getId());
         if (existing == null) {
-            throw new BusinessException(404, "商品不存在");
+            return null;
         }
         if (!existing.getSellerId().equals(sellerId)) {
             throw new BusinessException(403, "无权修改他人的商品");
@@ -97,26 +117,27 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteProduct(Long id, Long sellerId) {
+    public boolean deleteProduct(Long id, Long sellerId) {
         Product existing = this.getById(id);
         if (existing == null) {
-            throw new BusinessException(404, "商品不存在");
+            return false;
         }
         if (!existing.getSellerId().equals(sellerId)) {
             throw new BusinessException(403, "无权下架他人商品");
         }
-        
+
         // 状态机流转为下架
         existing.setPublishStatus("off_shelf");
         existing.setOffShelfAt(LocalDateTime.now());
         this.updateById(existing);
+        return true;
     }
 
     @Override
     public ProductVO getProductDetail(Long id) {
         Product p = this.getById(id);
         if (p == null) {
-            throw new BusinessException(404, "商品不存在");
+            return null;
         }
         return convertToVO(p);
     }

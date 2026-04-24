@@ -4,6 +4,7 @@ import com.secondhand.marketplace.backend.common.api.CommonResult;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,6 +44,12 @@ public class GlobalExceptionHandler {
     public CommonResult<Void> handleNoResourceFoundException(NoResourceFoundException e) {
         log.warn("请求路径不存在: {}", e.getResourcePath());
         return CommonResult.error(404, "接口不存在，请检查请求路径和方法");
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public CommonResult<Void> handleDataIntegrityViolationException(DataIntegrityViolationException e) {
+        log.warn("数据完整性异常: {}", e.getMessage());
+        return CommonResult.error(400, "提交的数据违反了数据库约束(如分类不存在或数据过长)，请检查后重试");
     }
 
     @ExceptionHandler(Exception.class)
