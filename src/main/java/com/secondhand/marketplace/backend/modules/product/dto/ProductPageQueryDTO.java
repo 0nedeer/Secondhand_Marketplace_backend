@@ -15,8 +15,8 @@ public class ProductPageQueryDTO {
     @Schema(description = "分类ID")
     private Long categoryId;
 
-    @Schema(description = "发布状态（选填），默认只查on_sale")
-    private String publishStatus = "on_sale";
+    @Schema(description = "发布状态（选填）。非管理员仅允许查询公开状态")
+    private String publishStatus;
 
     @Schema(description = "搜索关键词（标题或描述）")
     private String keyword;

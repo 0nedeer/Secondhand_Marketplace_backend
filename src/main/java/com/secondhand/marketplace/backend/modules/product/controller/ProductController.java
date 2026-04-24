@@ -72,7 +72,7 @@ public class ProductController {
     @Operation(summary = "分页条件查询商品", description = "支持按分类、状态、关键词检索")
     @PostMapping("/list")
     public CommonResult<PageResult<ProductVO>> listProducts(@RequestBody ProductPageQueryDTO queryDTO) {
-        return CommonResult.success(productService.getProductPage(queryDTO));
+        return CommonResult.success(productService.getProductPage(queryDTO, UserContext.getCurrentUserId()));
     }
 
     @Operation(summary = "获取商品详情", description = "根据ID获取商品所有核心属性与关联图片")

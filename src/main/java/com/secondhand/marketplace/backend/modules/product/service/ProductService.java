@@ -19,5 +19,5 @@ public interface ProductService extends IService<Product> {
     
     ProductVO getProductDetail(Long id);
     
-    PageResult<ProductVO> getProductPage(ProductPageQueryDTO queryDTO);
+    PageResult<ProductVO> getProductPage(ProductPageQueryDTO queryDTO, Long currentUserId);
 }

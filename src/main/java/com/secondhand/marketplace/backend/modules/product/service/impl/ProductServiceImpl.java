@@ -17,6 +17,8 @@ import com.secondhand.marketplace.backend.modules.product.service.ProductService
 import com.secondhand.marketplace.backend.modules.product.vo.PageResult;
 import com.secondhand.marketplace.backend.modules.product.vo.ProductImageVO;
 import com.secondhand.marketplace.backend.modules.product.vo.ProductVO;
+import com.secondhand.marketplace.backend.modules.user.entity.UserAccount;
+import com.secondhand.marketplace.backend.modules.user.mapper.UserAccountMapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,16 +28,23 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements ProductService {
+
+    private static final String STATUS_ON_SALE = "on_sale";
+    private static final Set<String> PUBLIC_QUERYABLE_STATUSES = Set.of(STATUS_ON_SALE);
 
     @Autowired
     private ProductImageService productImageService;
 
     @Autowired
     private CategoryMapper categoryMapper;
+
+    @Autowired
+    private UserAccountMapper userAccountMapper;
 
     @Override
     public boolean addViewCount(Long id) {
@@ -143,14 +152,29 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
-    public PageResult<ProductVO> getProductPage(ProductPageQueryDTO queryDTO) {
+    public PageResult<ProductVO> getProductPage(ProductPageQueryDTO queryDTO, Long currentUserId) {
         LambdaQueryWrapper<Product> queryWrapper = new LambdaQueryWrapper<>();
         if (queryDTO.getCategoryId() != null) {
             queryWrapper.eq(Product::getCategoryId, queryDTO.getCategoryId());
         }
-        if (StringUtils.hasText(queryDTO.getPublishStatus())) {
-            queryWrapper.eq(Product::getPublishStatus, queryDTO.getPublishStatus());
+
+        String requestedStatus = queryDTO.getPublishStatus();
+        if (StringUtils.hasText(requestedStatus)) {
+            requestedStatus = requestedStatus.trim();
         }
+
+        if (isAdmin(currentUserId)) {
+            if (StringUtils.hasText(requestedStatus)) {
+                queryWrapper.eq(Product::getPublishStatus, requestedStatus);
+            }
+        } else {
+            if (StringUtils.hasText(requestedStatus) && !PUBLIC_QUERYABLE_STATUSES.contains(requestedStatus)) {
+                throw new BusinessException(403, "无权限查询该商品状态");
+            }
+            queryWrapper.eq(Product::getPublishStatus,
+                    StringUtils.hasText(requestedStatus) ? requestedStatus : STATUS_ON_SALE);
+        }
+
         if (StringUtils.hasText(queryDTO.getKeyword())) {
             queryWrapper.and(wrapper -> wrapper.like(Product::getTitle, queryDTO.getKeyword())
                     .or().like(Product::getDescription, queryDTO.getKeyword()));
@@ -162,6 +186,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
         List<ProductVO> vos = page.getRecords().stream().map(this::convertToVO).collect(Collectors.toList());
         return new PageResult<>(page.getTotal(), vos);
+    }
+
+    private boolean isAdmin(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        UserAccount user = userAccountMapper.selectById(userId);
+        return user != null && Integer.valueOf(1).equals(user.getIsAdmin());
     }
 
     private void saveImagesForProduct(Long productId, List<ProductImageDTO> images) {
