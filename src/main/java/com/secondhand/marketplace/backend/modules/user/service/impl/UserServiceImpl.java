@@ -2,6 +2,7 @@ package com.secondhand.marketplace.backend.modules.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.secondhand.marketplace.backend.common.exception.BusinessException;
 import com.secondhand.marketplace.backend.common.util.JwtUtil;
 import com.secondhand.marketplace.backend.common.util.PasswordUtil;
@@ -567,6 +568,45 @@ public class UserServiceImpl implements UserService {
                 .followCount(followCount)
                 .followerCount(followerCount)
                 .build();
+    }
+
+    @Override
+    public AdminUserPageVO pageUsers(Long adminId, Boolean isAdmin, Boolean canBuy, Boolean canSell,
+                                     String userStatus, long page, long pageSize) {
+        UserAccount admin = userAccountMapper.selectById(adminId);
+        if (admin == null || admin.getIsAdmin() != 1) {
+            throw new BusinessException("无权限操作");
+        }
+        if (page < 1 || pageSize < 1) {
+            throw new BusinessException("分页参数不合法");
+        }
+
+        String normalizedStatus = userStatus == null ? null : userStatus.trim();
+        LambdaQueryWrapper<UserAccount> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(isAdmin != null, UserAccount::getIsAdmin, Boolean.TRUE.equals(isAdmin) ? 1 : 0)
+                .eq(canBuy != null, UserAccount::getCanBuy, Boolean.TRUE.equals(canBuy) ? 1 : 0)
+                .eq(canSell != null, UserAccount::getCanSell, Boolean.TRUE.equals(canSell) ? 1 : 0)
+                .eq(normalizedStatus != null && !normalizedStatus.isEmpty(), UserAccount::getUserStatus, normalizedStatus)
+                .orderByDesc(UserAccount::getRegisteredAt);
+
+        Page<UserAccount> userPage = userAccountMapper.selectPage(new Page<>(page, pageSize), wrapper);
+        List<AdminUserItemVO> list = userPage.getRecords().stream()
+                .map(user -> AdminUserItemVO.builder()
+                        .id(user.getId())
+                        .username(user.getUsername())
+                        .nickname(user.getNickname())
+                        .phone(user.getPhone())
+                        .email(user.getEmail())
+                        .canBuy(user.getCanBuy() != null && user.getCanBuy() == 1)
+                        .canSell(user.getCanSell() != null && user.getCanSell() == 1)
+                        .isAdmin(user.getIsAdmin() != null && user.getIsAdmin() == 1)
+                        .userStatus(user.getUserStatus())
+                        .lastLoginAt(user.getLastLoginAt())
+                        .registeredAt(user.getRegisteredAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return new AdminUserPageVO(userPage.getTotal(), userPage.getCurrent(), userPage.getSize(), list);
     }
 
     @Override
