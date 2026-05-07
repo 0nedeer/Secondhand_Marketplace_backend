@@ -5,6 +5,7 @@ import com.secondhand.marketplace.backend.common.context.UserContext;
 import com.secondhand.marketplace.backend.modules.product.dto.ProductCreateDTO;
 import com.secondhand.marketplace.backend.modules.product.dto.ProductPageQueryDTO;
 import com.secondhand.marketplace.backend.modules.product.dto.ProductUpdateDTO;
+import com.secondhand.marketplace.backend.modules.product.dto.ProductAuditDTO;
 import com.secondhand.marketplace.backend.modules.product.entity.Category;
 import com.secondhand.marketplace.backend.modules.product.entity.Product;
 import com.secondhand.marketplace.backend.modules.product.mapper.CategoryMapper;
@@ -17,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.secondhand.marketplace.backend.common.util.MinioUtil;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -32,6 +35,7 @@ public class ProductController {
 
     private final ProductService productService;
     private final CategoryMapper categoryMapper;
+    private final MinioUtil minioUtil;
 
 
     
@@ -72,7 +76,7 @@ public class ProductController {
     @Operation(summary = "分页条件查询商品", description = "支持按分类、状态、关键词检索")
     @PostMapping("/list")
     public CommonResult<PageResult<ProductVO>> listProducts(@RequestBody ProductPageQueryDTO queryDTO) {
-        return CommonResult.success(productService.getProductPage(queryDTO));
+        return CommonResult.success(productService.getProductPage(queryDTO, UserContext.getCurrentUserId()));
     }
 
     @Operation(summary = "获取商品详情", description = "根据ID获取商品所有核心属性与关联图片")
@@ -141,6 +145,79 @@ public class ProductController {
             return CommonResult.error(404, "商品不存在");
         }
         return CommonResult.success(vo);
+    }
+
+    @Operation(summary = "上传商品图片", description = "支持上传单张商品图片，内部通过上传用户ID进行文件夹隔离管理")
+    @PostMapping("/upload-image")
+    public CommonResult<String> uploadImage(@RequestParam("file") MultipartFile file) {
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return CommonResult.error(401, "请先登录");
+        }
+
+        try {
+            // 为商品图片划分独立的文件夹：product / 用户ID，便于后续查找孤儿文件或者统计用户存储用量
+            String folder = "product/" + userId;
+            String objectName = minioUtil.uploadFile(file, folder);
+            
+            // 返回在 OSS 上的对象路径，前端通过这个路径拼接域名或者再次请求鉴权链接来访问图片
+            return CommonResult.success(objectName);
+        } catch (Exception e) {
+            log.error("上传商品图片失败", e);
+            return CommonResult.error(500, "图片上传失败，请稍后重试");
+        }
+    }
+
+    @Operation(summary = "审核商品/将草稿等转为上架(管理员)", description = "管理员审批发布，或者可直接将草稿强行上架/驳回")
+    @PutMapping("/admin/audit/{id}")
+    public CommonResult<Void> auditProduct(@PathVariable("id") @NotNull Long id,
+                                           @RequestBody @Valid ProductAuditDTO auditDTO) {
+        Long adminId = getCurrentUserId();
+        if (adminId == null) {
+            return CommonResult.error(401, "请先登录");
+        }
+
+        boolean success = productService.auditProduct(id, adminId, auditDTO.getApproved(), auditDTO.getRejectReason());
+        if (!success) {
+            return CommonResult.error(404, "商品不存在");
+        }
+        return CommonResult.success(null);
+    }
+
+    @Operation(summary = "提交商品审核", description = "卖家将草稿或驳回状态的商品转为待审核")
+    @PutMapping("/{id}/submit-review")
+    public CommonResult<String> submitForReview(@PathVariable("id") @NotNull Long id) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return CommonResult.error(401, "请先登录");
+        boolean success = productService.submitForReview(id, userId);
+        return success ? CommonResult.success("提交审核成功") : CommonResult.error(404, "操作失败或商品不存在");
+    }
+
+    @Operation(summary = "撤销商品审核", description = "卖家将待审核状态的商品转成草稿")
+    @PutMapping("/{id}/revoke-review")
+    public CommonResult<String> revokeReview(@PathVariable("id") @NotNull Long id) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return CommonResult.error(401, "请先登录");
+        boolean success = productService.revokeReview(id, userId);
+        return success ? CommonResult.success("撤销成功") : CommonResult.error(404, "操作失败或商品不存在");
+    }
+
+//    @Operation(summary = "下架商品", description = "卖家将上架的商品设为临时下架(off_shelf)")
+//    @PutMapping("/{id}/off-shelf")
+//    public CommonResult<String> takeOffShelf(@PathVariable("id") @NotNull Long id) {
+//        Long userId = getCurrentUserId();
+//        if (userId == null) return CommonResult.error(401, "请先登录");
+//        boolean success = productService.takeOffShelf(id, userId);
+//        return success ? CommonResult.success("下架成功") : CommonResult.error(404, "操作失败或商品不存在");
+//    }
+
+    @Operation(summary = "重新上架", description = "卖家将下架的商品申请重新上架(转为待审核)")
+    @PutMapping("/{id}/relist")
+    public CommonResult<String> relistProduct(@PathVariable("id") @NotNull Long id) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return CommonResult.error(401, "请先登录");
+        boolean success = productService.relistProduct(id, userId);
+        return success ? CommonResult.success("申请重新上架成功") : CommonResult.error(404, "操作失败或商品不存在");
     }
 }
 
