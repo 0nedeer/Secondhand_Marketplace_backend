@@ -190,6 +190,27 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             queryWrapper.and(wrapper -> wrapper.like(Product::getTitle, queryDTO.getKeyword())
                     .or().like(Product::getDescription, queryDTO.getKeyword()));
         }
+
+        if (queryDTO.getConditionLevels() != null && !queryDTO.getConditionLevels().isEmpty()) {
+            queryWrapper.in(Product::getConditionLevel, queryDTO.getConditionLevels());
+        }
+
+        if (queryDTO.getPickupCities() != null && !queryDTO.getPickupCities().isEmpty()) {
+            queryWrapper.in(Product::getPickupCity, queryDTO.getPickupCities());
+        }
+
+        if (queryDTO.getTradeMode() != null && !queryDTO.getTradeMode().isEmpty()) {
+            queryWrapper.eq(Product::getTradeMode, queryDTO.getTradeMode());
+        }
+
+        if (queryDTO.getMinPrice() != null) {
+            queryWrapper.ge(Product::getSellingPrice, queryDTO.getMinPrice());
+        }
+
+        if (queryDTO.getMaxPrice() != null) {
+            queryWrapper.le(Product::getSellingPrice, queryDTO.getMaxPrice());
+        }
+        
         queryWrapper.orderByDesc(Product::getCreatedAt);
 
         Page<Product> page = new Page<>(queryDTO.getCurrent(), queryDTO.getSize());
