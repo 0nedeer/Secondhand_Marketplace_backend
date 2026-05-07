@@ -23,6 +23,7 @@ public class Product {
     private Integer purchaseYear;
     private BigDecimal originalPrice;
     private BigDecimal sellingPrice;
+    private Boolean canBargain;
     private String tradeMode;
     private String pickupCity;
     private String pickupAddress;
