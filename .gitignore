@@ -1,12 +1,13 @@
 # IDE directories and files
 .idea/
+*.iml
 .vscode/
-*.sw?
 
 # Maven build output
 target/
 *.class
-.mybatis/
+*.jar
+*.war
 
 # Logs
 logs
