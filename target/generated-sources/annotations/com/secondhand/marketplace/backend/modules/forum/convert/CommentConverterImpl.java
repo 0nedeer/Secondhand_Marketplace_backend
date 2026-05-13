@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-21T14:10:59+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.9 (Oracle Corporation)"
+    date = "2026-05-13T19:15:14+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.2 (Oracle Corporation)"
 )
 @Component
 public class CommentConverterImpl implements CommentConverter {
@@ -30,6 +30,8 @@ public class CommentConverterImpl implements CommentConverter {
         forumComment.replyToUserId( dto.getReplyToUserId() );
         forumComment.content( dto.getContent() );
 
+        forumComment.likeCount( 0 );
+        forumComment.replyCount( 0 );
         forumComment.isDeleted( 0 );
         forumComment.auditStatus( "pending" );
 

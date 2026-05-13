@@ -176,7 +176,7 @@ public class PostServiceImpl implements PostService {
             UserInfoVO authorUserInfo = new UserInfoVO();
             authorUserInfo.setId(authorInfo.getId());
             authorUserInfo.setUsername(authorInfo.getUsername());
-            authorUserInfo.setAvatar(authorInfo.getAvatar());
+            authorUserInfo.setAvatar(authorInfo.getAvatarUrl());
             vo.setAuthorInfo(authorUserInfo);
         }
         
@@ -264,7 +264,7 @@ public class PostServiceImpl implements PostService {
             UserVO authorInfo = userService.getUserInfo(post.getAuthorId());
             if (authorInfo != null) {
                 vo.setAuthorName(authorInfo.getUsername());
-                vo.setAuthorAvatar(authorInfo.getAvatar());
+                vo.setAuthorAvatar(authorInfo.getAvatarUrl());
             }
             
             // 填充首张图片
@@ -306,7 +306,7 @@ public class PostServiceImpl implements PostService {
             UserVO authorInfo = userService.getUserInfo(post.getAuthorId());
             if (authorInfo != null) {
                 vo.setAuthorName(authorInfo.getUsername());
-                vo.setAuthorAvatar(authorInfo.getAvatar());
+                vo.setAuthorAvatar(authorInfo.getAvatarUrl());
             }
             
             // 填充首张图片

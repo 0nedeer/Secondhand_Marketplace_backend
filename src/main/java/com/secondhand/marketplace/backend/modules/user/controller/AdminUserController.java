@@ -5,6 +5,9 @@ import com.secondhand.marketplace.backend.common.context.UserContext;
 import com.secondhand.marketplace.backend.modules.user.service.UserService;
 import com.secondhand.marketplace.backend.modules.user.vo.AdminUserPageVO;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.web.bind.annotation.*;
 
 
@@ -23,10 +26,12 @@ public class AdminUserController {
                                                    @RequestParam(required = false) Boolean canBuy,
                                                    @RequestParam(required = false) Boolean canSell,
                                                    @RequestParam(required = false, name = "status") String userStatus,
+                                                   @RequestParam(required = false) String keyword,
+                                                   @RequestParam(required = false) List<String> searchFields,
                                                    @RequestParam(defaultValue = "1") long page,
                                                    @RequestParam(defaultValue = "20") long pageSize) {
         Long adminId = UserContext.getCurrentUserId();
-        return CommonResult.success(userService.pageUsers(adminId, isAdmin, canBuy, canSell, userStatus, page, pageSize));
+        return CommonResult.success(userService.pageUsers(adminId, isAdmin, canBuy, canSell, userStatus, keyword, searchFields, page, pageSize));
     }
 
 

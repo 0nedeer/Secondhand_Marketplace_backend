@@ -584,7 +584,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public AdminUserPageVO pageUsers(Long adminId, Boolean isAdmin, Boolean canBuy, Boolean canSell,
-                                     String userStatus, long page, long pageSize) {
+                                     String userStatus, String keyword, List<String> searchFields, long page, long pageSize) {
         UserAccount admin = userAccountMapper.selectById(adminId);
         if (admin == null || admin.getIsAdmin() != 1) {
             throw new BusinessException("无权限操作");
@@ -598,8 +598,40 @@ public class UserServiceImpl implements UserService {
         wrapper.eq(isAdmin != null, UserAccount::getIsAdmin, Boolean.TRUE.equals(isAdmin) ? 1 : 0)
                 .eq(canBuy != null, UserAccount::getCanBuy, Boolean.TRUE.equals(canBuy) ? 1 : 0)
                 .eq(canSell != null, UserAccount::getCanSell, Boolean.TRUE.equals(canSell) ? 1 : 0)
-                .eq(normalizedStatus != null && !normalizedStatus.isEmpty(), UserAccount::getUserStatus, normalizedStatus)
-                .orderByDesc(UserAccount::getRegisteredAt);
+                .eq(normalizedStatus != null && !normalizedStatus.isEmpty(), UserAccount::getUserStatus, normalizedStatus);
+
+        // 添加关键词搜索
+        if (keyword != null && !keyword.trim().isEmpty() && searchFields != null && !searchFields.isEmpty()) {
+            String searchKeyword = keyword.trim();
+            wrapper.and(w -> {
+                for (String field : searchFields) {
+                    switch (field.toLowerCase()) {
+                        case "id":
+                            try {
+                                Long id = Long.parseLong(searchKeyword);
+                                w.or().eq(UserAccount::getId, id);
+                            } catch (NumberFormatException e) {
+                                // 不是数字，跳过id搜索
+                            }
+                            break;
+                        case "username":
+                            w.or().like(UserAccount::getUsername, searchKeyword);
+                            break;
+                        case "nickname":
+                            w.or().like(UserAccount::getNickname, searchKeyword);
+                            break;
+                        case "email":
+                            w.or().like(UserAccount::getEmail, searchKeyword);
+                            break;
+                        case "phone":
+                            w.or().like(UserAccount::getPhone, searchKeyword);
+                            break;
+                    }
+                }
+            });
+        }
+
+        wrapper.orderByDesc(UserAccount::getRegisteredAt);
 
         Page<UserAccount> userPage = userAccountMapper.selectPage(new Page<>(page, pageSize), wrapper);
         List<AdminUserItemVO> list = userPage.getRecords().stream()

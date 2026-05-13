@@ -152,7 +152,7 @@ public class AuditServiceImpl implements AuditService {
             UserVO authorInfo = userService.getUserInfo(post.getAuthorId());
             if (authorInfo != null) {
                 vo.setAuthorName(authorInfo.getUsername());
-                vo.setAuthorAvatar(authorInfo.getAvatar());
+                vo.setAuthorAvatar(authorInfo.getAvatarUrl());
             }
             
             // 填充首张图片
@@ -198,7 +198,7 @@ public class AuditServiceImpl implements AuditService {
                 UserInfoVO auditorUserInfo = new UserInfoVO();
                 auditorUserInfo.setId(auditorInfo.getId());
                 auditorUserInfo.setUsername(auditorInfo.getUsername());
-                auditorUserInfo.setAvatar(auditorInfo.getAvatar());
+                auditorUserInfo.setAvatar(auditorInfo.getAvatarUrl());
                 vo.setAuditorInfo(auditorUserInfo);
             }
             

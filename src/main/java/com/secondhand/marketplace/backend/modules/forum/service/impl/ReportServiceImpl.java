@@ -114,7 +114,7 @@ public class ReportServiceImpl implements ReportService {
             UserInfoVO reporterInfo = new UserInfoVO();
             reporterInfo.setId(reporter.getId());
             reporterInfo.setUsername(reporter.getUsername());
-            reporterInfo.setAvatar(reporter.getAvatar());
+            reporterInfo.setAvatar(reporter.getAvatarUrl());
             vo.setReporterInfo(reporterInfo);
         }
         
@@ -125,7 +125,7 @@ public class ReportServiceImpl implements ReportService {
                 UserInfoVO handlerInfo = new UserInfoVO();
                 handlerInfo.setId(handler.getId());
                 handlerInfo.setUsername(handler.getUsername());
-                handlerInfo.setAvatar(handler.getAvatar());
+                handlerInfo.setAvatar(handler.getAvatarUrl());
                 vo.setHandlerInfo(handlerInfo);
             }
         }
@@ -177,7 +177,7 @@ public class ReportServiceImpl implements ReportService {
                 UserInfoVO reporterInfo = new UserInfoVO();
                 reporterInfo.setId(reporter.getId());
                 reporterInfo.setUsername(reporter.getUsername());
-                reporterInfo.setAvatar(reporter.getAvatar());
+                reporterInfo.setAvatar(reporter.getAvatarUrl());
                 vo.setReporterInfo(reporterInfo);
             }
             

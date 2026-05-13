@@ -21,7 +21,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RequestMapping("/api/common")
 @Tag(name = "通用接口", description = "通用功能接口")
-public class FileUploadController {
+public class CommonFileUploadController {
 
     private final MinioUtil minioUtil;
 

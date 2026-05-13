@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # IDE directories and files
 .idea/
 .vscode/
@@ -27,32 +26,3 @@ application-*.yml
 /GitCommits-SpringBoot.md
 /git_commits.md
 /git_status.bat
-=======
-# Maven build output
-target/
-
-# IDE and editor settings
-.idea/
-.vscode/
-*.iml
-
-# Logs
-*.log
-logs/
-
-# OS metadata
-.DS_Store
-Thumbs.db
-Desktop.ini
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.swp
-*~
-
-# Java runtime artifacts
-hs_err_pid*
-replay_pid*
->>>>>>> master

@@ -178,7 +178,7 @@ public class CommentServiceImpl implements CommentService {
             UserInfoVO commenterUserInfo = new UserInfoVO();
             commenterUserInfo.setId(commenterInfo.getId());
             commenterUserInfo.setUsername(commenterInfo.getUsername());
-            commenterUserInfo.setAvatar(commenterInfo.getAvatar());
+            commenterUserInfo.setAvatar(commenterInfo.getAvatarUrl());
             vo.setCommenterInfo(commenterUserInfo);
         }
         
@@ -189,7 +189,7 @@ public class CommentServiceImpl implements CommentService {
                 UserInfoVO replyToUserInfoVO = new UserInfoVO();
                 replyToUserInfoVO.setId(replyToUserInfo.getId());
                 replyToUserInfoVO.setUsername(replyToUserInfo.getUsername());
-                replyToUserInfoVO.setAvatar(replyToUserInfo.getAvatar());
+                replyToUserInfoVO.setAvatar(replyToUserInfo.getAvatarUrl());
                 vo.setReplyToUserInfo(replyToUserInfoVO);
             }
         }
@@ -204,7 +204,7 @@ public class CommentServiceImpl implements CommentService {
                     UserInfoVO replyCommenterUserInfo = new UserInfoVO();
                     replyCommenterUserInfo.setId(replyCommenterInfo.getId());
                     replyCommenterUserInfo.setUsername(replyCommenterInfo.getUsername());
-                    replyCommenterUserInfo.setAvatar(replyCommenterInfo.getAvatar());
+                    replyCommenterUserInfo.setAvatar(replyCommenterInfo.getAvatarUrl());
                     replyVO.setCommenterInfo(replyCommenterUserInfo);
                 }
                 if (reply.getReplyToUserId() != null) {
@@ -249,7 +249,7 @@ public class CommentServiceImpl implements CommentService {
                 UserInfoVO commenterUserInfo = new UserInfoVO();
                 commenterUserInfo.setId(commenterInfo.getId());
                 commenterUserInfo.setUsername(commenterInfo.getUsername());
-                commenterUserInfo.setAvatar(commenterInfo.getAvatar());
+                commenterUserInfo.setAvatar(commenterInfo.getAvatarUrl());
                 vo.setCommenterInfo(commenterUserInfo);
             }
             
@@ -274,7 +274,7 @@ public class CommentServiceImpl implements CommentService {
                         UserInfoVO replyCommenterUserInfo = new UserInfoVO();
                         replyCommenterUserInfo.setId(replyCommenterInfo.getId());
                         replyCommenterUserInfo.setUsername(replyCommenterInfo.getUsername());
-                        replyCommenterUserInfo.setAvatar(replyCommenterInfo.getAvatar());
+                        replyCommenterUserInfo.setAvatar(replyCommenterInfo.getAvatarUrl());
                         replyVO.setCommenterInfo(replyCommenterUserInfo);
                     }
                     return replyVO;
@@ -316,7 +316,7 @@ public class CommentServiceImpl implements CommentService {
                 UserInfoVO commenterUserInfo = new UserInfoVO();
                 commenterUserInfo.setId(commenterInfo.getId());
                 commenterUserInfo.setUsername(commenterInfo.getUsername());
-                commenterUserInfo.setAvatar(commenterInfo.getAvatar());
+                commenterUserInfo.setAvatar(commenterInfo.getAvatarUrl());
                 vo.setCommenterInfo(commenterUserInfo);
             }
             
