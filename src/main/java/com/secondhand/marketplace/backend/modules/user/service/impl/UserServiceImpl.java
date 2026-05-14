@@ -133,6 +133,7 @@ public class UserServiceImpl implements UserService {
                 .userStatus(user.getUserStatus())
                 .lastLoginAt(LocalDateTime.now())
                 .registeredAt(user.getRegisteredAt())
+                .isAdmin(user.getIsAdmin())
                 .build();
 
         return LoginVO.builder()
