@@ -97,31 +97,31 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ProductVO updateProduct(ProductUpdateDTO dto, Long sellerId) {
-        if (dto.getCategoryId() != null) {
-            com.secondhand.marketplace.backend.modules.product.entity.Category category = categoryMapper.selectById(dto.getCategoryId());
-            if (category == null) {
-                throw new BusinessException(400, "指定的商品分类不存在");
-            }
-        }
-
         Product existing = this.getById(dto.getId());
         if (existing == null) {
             return null;
         }
-        if (!existing.getSellerId().equals(sellerId)) {
-            throw new BusinessException(403, "无权修改他人的商品");
+
+        if (!isAdmin(sellerId)) {
+            if (!existing.getSellerId().equals(sellerId)) {
+                throw new BusinessException(403, "无权修改他人的商品");
+            }
+            if (STATUS_ON_SALE.equals(existing.getPublishStatus()) || STATUS_SOLD.equals(existing.getPublishStatus())) {
+                throw new BusinessException(400, "当前状态不允许修改");
+            }
         }
-        // 只能修改未上架的，或下架状态重新变成待审核
-        if (STATUS_ON_SALE.equals(existing.getPublishStatus()) || STATUS_SOLD.equals(existing.getPublishStatus())) {
-            throw new BusinessException(400, "当前状态不允许修改");
+
+        if (dto.getCategoryId() != null && categoryMapper.selectById(dto.getCategoryId()) == null) {
+            throw new BusinessException(400, "指定的商品分类不存在");
         }
-        
+
         BeanUtils.copyProperties(dto, existing);
         existing.setUpdatedAt(LocalDateTime.now());
         
         if (Boolean.TRUE.equals(dto.getIsDraft())) {
             existing.setPublishStatus(STATUS_DRAFT);
-        } else {
+            // 管理员无条件放过
+        } else if (!isAdmin(sellerId)) {
             existing.setPublishStatus(STATUS_PENDING_REVIEW);
         }
         
