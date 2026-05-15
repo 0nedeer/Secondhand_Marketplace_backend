@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.secondhand.marketplace.backend.common.exception.BusinessException;
+import com.secondhand.marketplace.backend.common.context.UserContext;
 import com.secondhand.marketplace.backend.modules.product.dto.ProductCreateDTO;
 import com.secondhand.marketplace.backend.modules.product.dto.ProductImageDTO;
 import com.secondhand.marketplace.backend.modules.product.dto.ProductPageQueryDTO;
@@ -97,31 +98,31 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ProductVO updateProduct(ProductUpdateDTO dto, Long sellerId) {
-        if (dto.getCategoryId() != null) {
-            com.secondhand.marketplace.backend.modules.product.entity.Category category = categoryMapper.selectById(dto.getCategoryId());
-            if (category == null) {
-                throw new BusinessException(400, "指定的商品分类不存在");
-            }
-        }
-
         Product existing = this.getById(dto.getId());
         if (existing == null) {
             return null;
         }
-        if (!existing.getSellerId().equals(sellerId)) {
-            throw new BusinessException(403, "无权修改他人的商品");
+
+        if (!isAdmin(sellerId)) {
+            if (!existing.getSellerId().equals(sellerId)) {
+                throw new BusinessException(403, "无权修改他人的商品");
+            }
+            if (STATUS_ON_SALE.equals(existing.getPublishStatus()) || STATUS_SOLD.equals(existing.getPublishStatus())) {
+                throw new BusinessException(400, "当前状态不允许修改");
+            }
         }
-        // 只能修改未上架的，或下架状态重新变成待审核
-        if (STATUS_ON_SALE.equals(existing.getPublishStatus()) || STATUS_SOLD.equals(existing.getPublishStatus())) {
-            throw new BusinessException(400, "当前状态不允许修改");
+
+        if (dto.getCategoryId() != null && categoryMapper.selectById(dto.getCategoryId()) == null) {
+            throw new BusinessException(400, "指定的商品分类不存在");
         }
-        
+
         BeanUtils.copyProperties(dto, existing);
         existing.setUpdatedAt(LocalDateTime.now());
-        
+
         if (Boolean.TRUE.equals(dto.getIsDraft())) {
             existing.setPublishStatus(STATUS_DRAFT);
-        } else {
+            // 管理员无条件放过
+        } else if (!isAdmin(sellerId)) {
             existing.setPublishStatus(STATUS_PENDING_REVIEW);
         }
         
@@ -159,6 +160,18 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (p == null) {
             return null;
         }
+        
+        Long currentUserId = UserContext.getCurrentUserId();
+        
+        // 只有管理员、商品作者，或者该商品属于公开的查询状态（上架、已售）时才允许查阅。
+        boolean isPublic = PUBLIC_QUERYABLE_STATUSES.contains(p.getPublishStatus());
+        boolean isOwner = currentUserId != null && currentUserId.equals(p.getSellerId());
+        boolean isAdminUser = isAdmin(currentUserId);
+        
+        if (!isPublic && !isOwner && !isAdminUser) {
+            throw new BusinessException(403, "商品未上架，无权查看详情");
+        }
+        
         return convertToVO(p);
     }
 
@@ -174,16 +187,21 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             requestedStatus = requestedStatus.trim();
         }
 
-        if (isAdmin(currentUserId)) {
+        if (!isAdmin(currentUserId)) {
+            if (!StringUtils.hasText(requestedStatus)) {
+                queryWrapper.in(Product::getPublishStatus, PUBLIC_QUERYABLE_STATUSES);
+            } else {
+                if (!PUBLIC_QUERYABLE_STATUSES.contains(requestedStatus)) {
+                    throw new BusinessException(403, "无权限查询该商品状态");
+                }
+
+                queryWrapper.eq(Product::getPublishStatus, requestedStatus);
+            }
+
+        } else {
             if (StringUtils.hasText(requestedStatus)) {
                 queryWrapper.eq(Product::getPublishStatus, requestedStatus);
             }
-        } else {
-            if (StringUtils.hasText(requestedStatus) && !PUBLIC_QUERYABLE_STATUSES.contains(requestedStatus)) {
-                throw new BusinessException(403, "无权限查询该商品状态");
-            }
-            queryWrapper.eq(Product::getPublishStatus,
-                    StringUtils.hasText(requestedStatus) ? requestedStatus : STATUS_ON_SALE);
         }
 
         if (StringUtils.hasText(queryDTO.getKeyword())) {
@@ -295,6 +313,98 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             return this.updateById(product);
         }
         throw new BusinessException(400, "仅下架状态可重新上架");
+    }
+
+    @Override
+    public PageResult<ProductVO> getMyProductPage(ProductPageQueryDTO queryDTO, Long currentUserId) {
+        LambdaQueryWrapper<Product> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Product::getSellerId, currentUserId);
+
+        // 如果传了具体的状态筛选，如 'draft', 则过滤；否则查出该用户所有状态的商品
+        if (StringUtils.hasText(queryDTO.getPublishStatus())) {
+            queryWrapper.eq(Product::getPublishStatus, queryDTO.getPublishStatus().trim());
+        }
+
+        if (StringUtils.hasText(queryDTO.getKeyword())) {
+            queryWrapper.and(wrapper -> wrapper.like(Product::getTitle, queryDTO.getKeyword())
+                    .or().like(Product::getDescription, queryDTO.getKeyword()));
+        }
+        
+        queryWrapper.orderByDesc(Product::getCreatedAt);
+
+        Page<Product> page = new Page<>(queryDTO.getCurrent(), queryDTO.getSize());
+        this.page(page, queryWrapper);
+
+        List<ProductVO> vos = page.getRecords().stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+        return new PageResult<>(page.getTotal(), vos);
+    }
+
+    @Override
+    public PageResult<ProductVO> getSellerProducts(Long sellerId, ProductPageQueryDTO queryDTO) {
+        // 只查询公开的商品
+        LambdaQueryWrapper<Product> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Product::getSellerId, sellerId);
+
+        String requestedStatus = queryDTO.getPublishStatus();
+        if (StringUtils.hasText(requestedStatus)) {
+            requestedStatus = requestedStatus.trim();
+        }
+        
+        if (!isAdmin(UserContext.getCurrentUserId())) {
+            if (!StringUtils.hasText(requestedStatus)) {
+                queryWrapper.in(Product::getPublishStatus, PUBLIC_QUERYABLE_STATUSES);
+            } else {
+                if (!PUBLIC_QUERYABLE_STATUSES.contains(requestedStatus)) {
+                    throw new BusinessException(403, "无权限查询该商品状态");
+                }
+
+                queryWrapper.eq(Product::getPublishStatus, requestedStatus);
+            }
+        } else {
+            if (StringUtils.hasText(requestedStatus)) {
+                queryWrapper.eq(Product::getPublishStatus, requestedStatus);
+            } else {
+                // all
+            }
+        }
+
+        if (StringUtils.hasText(queryDTO.getKeyword())) {
+            queryWrapper.and(wrapper -> wrapper.like(Product::getTitle, queryDTO.getKeyword())
+                    .or().like(Product::getDescription, queryDTO.getKeyword()));
+        }
+
+        if (queryDTO.getConditionLevels() != null && !queryDTO.getConditionLevels().isEmpty()) {
+            queryWrapper.in(Product::getConditionLevel, queryDTO.getConditionLevels());
+        }
+
+        if (queryDTO.getPickupCities() != null && !queryDTO.getPickupCities().isEmpty()) {
+            queryWrapper.in(Product::getPickupCity, queryDTO.getPickupCities());
+        }
+
+        if (StringUtils.hasText(queryDTO.getTradeMode())) {
+            queryWrapper.eq(Product::getTradeMode, queryDTO.getTradeMode());
+        }
+
+        if (queryDTO.getMinPrice() != null) {
+            queryWrapper.ge(Product::getSellingPrice, queryDTO.getMinPrice());
+        }
+
+        if (queryDTO.getMaxPrice() != null) {
+            queryWrapper.le(Product::getSellingPrice, queryDTO.getMaxPrice());
+        }
+
+        queryWrapper.orderByDesc(Product::getCreatedAt);
+
+        Page<Product> page = new Page<>(queryDTO.getCurrent(), queryDTO.getSize());
+        this.page(page, queryWrapper);
+
+        List<ProductVO> vos = page.getRecords().stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+        
+        return new PageResult<>(page.getTotal(), vos);
     }
 
     private boolean isAdmin(Long userId) {
