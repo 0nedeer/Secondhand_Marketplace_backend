@@ -1,6 +1,7 @@
 package com.secondhand.marketplace.backend.modules.forum.controller;
 
 import com.secondhand.marketplace.backend.common.api.Result;
+import com.secondhand.marketplace.backend.common.context.UserContext;
 import com.secondhand.marketplace.backend.config.TestConfig;
 import com.secondhand.marketplace.backend.modules.forum.dto.PostCreateDTO;
 import com.secondhand.marketplace.backend.modules.forum.dto.PostSearchDTO;
@@ -37,6 +38,10 @@ public class ForumPostController {
      * 注：根据项目实际认证方式调整
      */
     private Long getCurrentUserId(HttpServletRequest request) {
+        Long contextUserId = UserContext.getCurrentUserId();
+        if (contextUserId != null) {
+            return contextUserId;
+        }
         // 方式1：从请求头获取token并解析
         // String token = request.getHeader("Authorization");
         // return JwtUtil.getUserId(token);

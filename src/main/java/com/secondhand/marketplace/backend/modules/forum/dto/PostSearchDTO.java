@@ -17,6 +17,12 @@ public class PostSearchDTO extends PageParam {
     
     @Schema(description = "关键词（标题/内容）", example = "iPhone 13")
     private String keyword;
+
+    @Schema(description = "审核状态：pending/approved/rejected。管理员可传；普通用户固定只能看 approved", example = "pending")
+    private String status;
+
+    @Schema(description = "审核状态别名：pending/approved/rejected", example = "pending")
+    private String auditStatus;
     
     @Schema(description = "排序字段：created_at, published_at, like_count, view_count, comment_count", example = "created_at")
     private String sortBy;
