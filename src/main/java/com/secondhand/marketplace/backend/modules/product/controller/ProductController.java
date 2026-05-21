@@ -54,7 +54,7 @@ public class ProductController {
         return CommonResult.success(categoryMapper.selectList(null));
     }
 
-    @Operation(summary = "发布新商品", description = "提交商品主信息+图片，进入待审核(或草稿)状态")
+    @Operation(summary = "发布新商品", description = "提交商品主信息+图片，进入待审核或草稿状态")
     @PostMapping("/create")
     public CommonResult<ProductVO> createProduct(@RequestBody @Valid ProductCreateDTO dto) {
         Long userId = getCurrentUserId();
@@ -63,19 +63,22 @@ public class ProductController {
         return CommonResult.success(vo);
     }
 
-    @Operation(summary = "保存商品至草稿箱", description = "仅保存信息不提交审核")
-    @PostMapping("/draft")
-    public CommonResult<ProductVO> saveDraft(@RequestBody @Valid ProductCreateDTO dto) {
-        Long userId = getCurrentUserId();
-        if (userId == null) return CommonResult.error(401, "请先登录");
-        dto.setIsDraft(true);
-        ProductVO vo = productService.createProduct(dto, userId);
-        return CommonResult.success(vo);
-    }
+    // @Operation(summary = "保存商品至草稿箱", description = "仅保存信息不提交审核")
+    // @PostMapping("/draft")
+    // public CommonResult<ProductVO> saveDraft(@RequestBody @Valid ProductCreateDTO dto) {
+    //     Long userId = getCurrentUserId();
+    //     if (userId == null) return CommonResult.error(401, "请先登录");
+    //     dto.setIsDraft(true);
+    //     ProductVO vo = productService.createProduct(dto, userId);
+    //     return CommonResult.success(vo);
+    // }
 
     @Operation(summary = "分页条件查询商品", description = "支持按分类、状态、关键词检索")
     @PostMapping("/list")
-    public CommonResult<PageResult<ProductVO>> listProducts(@RequestBody ProductPageQueryDTO queryDTO) {
+    public CommonResult<PageResult<ProductVO>> listProducts(@RequestBody(required = false) ProductPageQueryDTO queryDTO) {
+        if (queryDTO == null) {
+            queryDTO = new ProductPageQueryDTO();
+        }
         return CommonResult.success(productService.getProductPage(queryDTO, UserContext.getCurrentUserId()));
     }
 
@@ -184,6 +187,19 @@ public class ProductController {
         return CommonResult.success(null);
     }
 
+    @Operation(summary = "获取我发布的商品列表", description = "返回当前用户所发布的所有商品，支持按状态(draft/pending_review等)筛选，不填状态则返回全部")
+    @PostMapping("/my/list")
+    public CommonResult<PageResult<ProductVO>> getMyProducts(@RequestBody(required = false) ProductPageQueryDTO queryDTO) {
+        if (queryDTO == null) {
+            queryDTO = new ProductPageQueryDTO();
+        }
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return CommonResult.error(401, "请先登录");
+        }
+        return CommonResult.success(productService.getMyProductPage(queryDTO, userId));
+    }
+
     @Operation(summary = "提交商品审核", description = "卖家将草稿或驳回状态的商品转为待审核")
     @PutMapping("/{id}/submit-review")
     public CommonResult<String> submitForReview(@PathVariable("id") @NotNull Long id) {
@@ -218,6 +234,16 @@ public class ProductController {
         if (userId == null) return CommonResult.error(401, "请先登录");
         boolean success = productService.relistProduct(id, userId);
         return success ? CommonResult.success("申请重新上架成功") : CommonResult.error(404, "操作失败或商品不存在");
+    }
+
+    @Operation(summary = "获取卖家商品列表", description = "获取其名下所有处于上架状态的商品展示列表。用户信息请通过独立接口获取。")
+    @PostMapping("/{sellerId}/list")
+    public CommonResult<PageResult<ProductVO>> getSellerProducts(@PathVariable("sellerId") @NotNull Long sellerId,
+                                                            @RequestBody(required = false) ProductPageQueryDTO queryDTO) {
+        if (queryDTO == null) {
+            queryDTO = new ProductPageQueryDTO();
+        }
+        return CommonResult.success(productService.getSellerProducts(sellerId, queryDTO));
     }
 }
 
