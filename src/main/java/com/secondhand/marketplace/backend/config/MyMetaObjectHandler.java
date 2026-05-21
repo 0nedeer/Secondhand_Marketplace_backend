@@ -13,6 +13,12 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
     public void insertFill(MetaObject metaObject) {
         this.strictInsertFill(metaObject, "createdAt", LocalDateTime.class, LocalDateTime.now());
         this.strictInsertFill(metaObject, "updatedAt", LocalDateTime.class, LocalDateTime.now());
+
+        //消息模块表
+        this.strictInsertFill(metaObject, "sentAt", LocalDateTime.class, LocalDateTime.now());
+        this.strictInsertFill(metaObject, "deliveredAt", LocalDateTime.class, LocalDateTime.now());
+        this.strictInsertFill(metaObject, "publishedAt", LocalDateTime.class, null);
+        this.strictInsertFill(metaObject, "lastReadAt", LocalDateTime.class, LocalDateTime.now());
     }
 
     @Override
