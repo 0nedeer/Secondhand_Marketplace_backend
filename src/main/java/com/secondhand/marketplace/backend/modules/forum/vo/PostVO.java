@@ -20,6 +20,9 @@ public class PostVO {
     
     @Schema(description = "帖子类型：normal/help/sell/review")
     private String postType;
+
+    @Schema(description = "分类ID")
+    private Long categoryId;
     
     @Schema(description = "分类名称")
     private String categoryName;
@@ -50,6 +53,15 @@ public class PostVO {
     
     @Schema(description = "审核状态：pending/approved/rejected")
     private String auditStatus;
+
+    @Schema(description = "审核状态别名：pending/approved/rejected")
+    private String status;
+
+    @Schema(description = "是否置顶")
+    private Boolean isTop;
+
+    @Schema(description = "是否精华")
+    private Boolean isFeatured;
     
     @Schema(description = "展示状态：normal/hidden/featured/top")
     private String displayStatus;
@@ -59,6 +71,9 @@ public class PostVO {
     
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;
+
+    @Schema(description = "更新时间")
+    private LocalDateTime updatedAt;
     
     @Schema(description = "当前用户是否已点赞")
     private Boolean isLiked;

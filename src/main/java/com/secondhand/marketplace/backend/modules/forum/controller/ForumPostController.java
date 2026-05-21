@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -36,11 +37,19 @@ public class ForumPostController {
      * 获取当前登录用户ID（从上下文或Token中获取）
      * 注：根据项目实际认证方式调整
      */
-    private Long getCurrentUserId() {
-        // 从UserContext获取当前登录用户ID
-        Long userId = UserContext.getCurrentUserId();
+    private Long getCurrentUserId(HttpServletRequest request) {
+        Long contextUserId = UserContext.getCurrentUserId();
+        if (contextUserId != null) {
+            return contextUserId;
+        }
+        // 方式1：从请求头获取token并解析
+        // String token = request.getHeader("Authorization");
+        // return JwtUtil.getUserId(token);
+        
+        // 方式2：从RequestAttribute获取（拦截器设置）
+        Object userId = request.getAttribute("userId");
         if (userId != null) {
-            return userId;
+            return (Long) userId;
         }
         
         // 测试模式：使用默认用户ID
@@ -54,8 +63,9 @@ public class ForumPostController {
     @PostMapping("/create")
     @Operation(summary = "发布帖子")
     public Result<Long> createPost(
-            @Valid @RequestBody PostCreateDTO dto) {
-        Long userId = getCurrentUserId();
+            @Valid @RequestBody PostCreateDTO dto,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
@@ -66,8 +76,9 @@ public class ForumPostController {
     @PutMapping("/update")
     @Operation(summary = "编辑帖子")
     public Result<Void> updatePost(
-            @Valid @RequestBody PostUpdateDTO dto) {
-        Long userId = getCurrentUserId();
+            @Valid @RequestBody PostUpdateDTO dto,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
@@ -81,8 +92,9 @@ public class ForumPostController {
     @DeleteMapping("/{postId}")
     @Operation(summary = "删除帖子")
     public Result<Void> deletePost(
-            @PathVariable @NotNull Long postId) {
-        Long userId = getCurrentUserId();
+            @PathVariable @NotNull Long postId,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
@@ -96,8 +108,9 @@ public class ForumPostController {
     @GetMapping("/{postId}")
     @Operation(summary = "获取帖子详情")
     public Result<PostVO> getPostDetail(
-            @PathVariable @NotNull Long postId) {
-        Long userId = getCurrentUserId();
+            @PathVariable @NotNull Long postId,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
         PostVO vo = postService.getPostDetail(userId, postId);
         if (vo == null) {
             return Result.error(404, "帖子不存在");
@@ -108,8 +121,9 @@ public class ForumPostController {
     @PostMapping("/list")
     @Operation(summary = "分页查询帖子列表")
     public Result<PageResult<PostListVO>> listPosts(
-            @RequestBody PostSearchDTO searchDTO) {
-        Long userId = getCurrentUserId();
+            @RequestBody PostSearchDTO searchDTO,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
         PageResult<PostListVO> result = postService.listPosts(userId, searchDTO);
         return Result.success(result);
     }
@@ -119,8 +133,9 @@ public class ForumPostController {
     public Result<PageResult<PostListVO>> listUserPosts(
             @PathVariable @NotNull Long authorId,
             @RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-            @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
-        Long userId = getCurrentUserId();
+            @RequestParam(defaultValue = "10") @Min(1) Integer pageSize,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
         PageResult<PostListVO> result = postService.listUserPosts(userId, authorId, pageNum, pageSize);
         return Result.success(result);
     }
@@ -128,8 +143,9 @@ public class ForumPostController {
     @PostMapping("/{postId}/like")
     @Operation(summary = "点赞/取消点赞帖子")
     public Result<Integer> likePost(
-            @PathVariable @NotNull Long postId) {
-        Long userId = getCurrentUserId();
+            @PathVariable @NotNull Long postId,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
@@ -143,8 +159,9 @@ public class ForumPostController {
     @PostMapping("/{postId}/collect")
     @Operation(summary = "收藏/取消收藏帖子")
     public Result<Integer> collectPost(
-            @PathVariable @NotNull Long postId) {
-        Long userId = getCurrentUserId();
+            @PathVariable @NotNull Long postId,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
@@ -159,8 +176,9 @@ public class ForumPostController {
     @Operation(summary = "转发帖子")
     public Result<Void> sharePost(
             @PathVariable @NotNull Long postId,
-            @RequestParam String channel) {
-        Long userId = getCurrentUserId();
+            @RequestParam String channel,
+            HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
@@ -178,8 +196,9 @@ public class ForumPostController {
     public Result<Void> auditPost(
             @PathVariable @NotNull Long postId,
             @RequestParam Boolean approved,
-            @RequestParam(required = false) String rejectReason) {
-        Long adminId = getCurrentUserId();
+            @RequestParam(required = false) String rejectReason,
+            HttpServletRequest request) {
+        Long adminId = getCurrentUserId(request);
         if (adminId == null) {
             return Result.error(401, "请先登录");
         }
@@ -195,8 +214,9 @@ public class ForumPostController {
     @Operation(summary = "置顶/取消置顶帖子（管理员）")
     public Result<Void> topPost(
             @PathVariable @NotNull Long postId,
-            @RequestParam Boolean top) {
-        Long adminId = getCurrentUserId();
+            @RequestParam Boolean top,
+            HttpServletRequest request) {
+        Long adminId = getCurrentUserId(request);
         if (adminId == null) {
             return Result.error(401, "请先登录");
         }
@@ -211,8 +231,9 @@ public class ForumPostController {
     @Operation(summary = "设为/取消精华帖（管理员）")
     public Result<Void> featurePost(
             @PathVariable @NotNull Long postId,
-            @RequestParam Boolean featured) {
-        Long adminId = getCurrentUserId();
+            @RequestParam Boolean featured,
+            HttpServletRequest request) {
+        Long adminId = getCurrentUserId(request);
         if (adminId == null) {
             return Result.error(401, "请先登录");
         }

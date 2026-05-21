@@ -71,5 +71,39 @@
         SELECT <include refid="Base_Column_List"/>
         FROM admin_log WHERE target_type = #{targetType} AND target_id = #{targetId} ORDER BY created_at DESC
     </select>
+
+    <sql id="Condition_Where">
+        <where>
+            <if test="adminId != null">
+                AND admin_id = #{adminId}
+            </if>
+            <if test="targetType != null and targetType != ''">
+                AND target_type = #{targetType}
+            </if>
+            <if test="action != null and action != ''">
+                AND action = #{action}
+            </if>
+            <if test="startTime != null">
+                AND created_at &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND created_at &lt;= #{endTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM admin_log
+        <include refid="Condition_Where"/>
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByCondition" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM admin_log
+        <include refid="Condition_Where"/>
+    </select>
     
 </mapper>

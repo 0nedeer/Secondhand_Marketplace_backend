@@ -9,15 +9,23 @@ import com.secondhand.marketplace.backend.modules.product.vo.PageResult;
 import com.secondhand.marketplace.backend.modules.product.vo.ProductVO;
 
 public interface ProductService extends IService<Product> {
-    void addViewCount(Long id);
-    
+    boolean addViewCount(Long id);
+
     ProductVO createProduct(ProductCreateDTO dto, Long sellerId);
-    
+
     ProductVO updateProduct(ProductUpdateDTO dto, Long sellerId);
-    
-    void deleteProduct(Long id, Long sellerId);
+
+    boolean deleteProduct(Long id, Long sellerId);
     
     ProductVO getProductDetail(Long id);
     
-    PageResult<ProductVO> getProductPage(ProductPageQueryDTO queryDTO);
+    PageResult<ProductVO> getProductPage(ProductPageQueryDTO queryDTO, Long currentUserId);
+
+    boolean auditProduct(Long productId, Long adminId, Boolean approved, String rejectReason);
+    
+    // 卖家流程控制
+    boolean submitForReview(Long id, Long sellerId);
+    boolean revokeReview(Long id, Long sellerId);
+    boolean relistProduct(Long id, Long sellerId);
 }
+
