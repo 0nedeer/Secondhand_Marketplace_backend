@@ -9,6 +9,9 @@ import com.secondhand.marketplace.backend.modules.forum.service.CommentService;
 import com.secondhand.marketplace.backend.modules.forum.vo.CommentVO;
 import com.secondhand.marketplace.backend.modules.forum.vo.PageResult;
 import com.secondhand.marketplace.backend.modules.forum.vo.UserInfoVO;
+import com.secondhand.marketplace.backend.modules.user.service.UserService;
+import com.secondhand.marketplace.backend.modules.user.vo.UserVO;
+import com.secondhand.marketplace.backend.modules.user.vo.UserPermissionsVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,17 +31,15 @@ public class CommentServiceImpl implements CommentService {
     private final ForumCommentMapper commentMapper;
     private final ForumReactionMapper reactionMapper;
     private final ForumPostMapper postMapper;
-    private final UserMapper userMapper;
     private final CommentConverter commentConverter;
+    private final UserService userService;
     
     @Override
     public Long createComment(Long userId, CommentCreateDTO dto) {
-        // 1. 校验用户是否被禁言
-        User user = userMapper.selectById(userId);
-        if (user.getIsMuted() == 1) {
-            if (user.getMuteExpireAt() != null && user.getMuteExpireAt().isAfter(LocalDateTime.now())) {
-                throw new RuntimeException("您已被禁言，无法发表评论");
-            }
+        // 1. 校验用户是否被禁用
+        String userStatus = userService.getUserStatus(userId);
+        if ("banned".equals(userStatus)) {
+            throw new RuntimeException("您已被禁用，无法发表评论");
         }
         
         // 2. 校验帖子是否存在
@@ -91,8 +92,8 @@ public class CommentServiceImpl implements CommentService {
         
         // 2. 权限校验：只有作者或管理员可以编辑
         if (!comment.getCommenterId().equals(userId)) {
-            User user = userMapper.selectById(userId);
-            if (!"admin".equals(user.getRole()) && !"super_admin".equals(user.getRole())) {
+            UserPermissionsVO permissions = userService.getUserPermissions(userId);
+            if (!permissions.getIsAdmin()) {
                 throw new RuntimeException("无权编辑此评论");
             }
         }
@@ -119,8 +120,8 @@ public class CommentServiceImpl implements CommentService {
         
         // 权限校验
         if (!comment.getCommenterId().equals(userId)) {
-            User user = userMapper.selectById(userId);
-            if (!"admin".equals(user.getRole()) && !"super_admin".equals(user.getRole())) {
+            UserPermissionsVO permissions = userService.getUserPermissions(userId);
+            if (!permissions.getIsAdmin()) {
                 throw new RuntimeException("无权删除此评论");
             }
         }
@@ -161,24 +162,24 @@ public class CommentServiceImpl implements CommentService {
         CommentVO vo = commentConverter.toVo(comment);
         
         // 填充评论者信息
-        User commenter = userMapper.selectById(comment.getCommenterId());
-        if (commenter != null) {
-            UserInfoVO commenterInfo = new UserInfoVO();
-            commenterInfo.setId(commenter.getId());
-            commenterInfo.setUsername(commenter.getUsername());
-            commenterInfo.setAvatar(commenter.getAvatar());
-            vo.setCommenterInfo(commenterInfo);
+        UserVO commenterInfo = userService.getUserInfo(comment.getCommenterId());
+        if (commenterInfo != null) {
+            UserInfoVO commenterUserInfo = new UserInfoVO();
+            commenterUserInfo.setId(commenterInfo.getId());
+            commenterUserInfo.setUsername(commenterInfo.getUsername());
+            commenterUserInfo.setAvatar(commenterInfo.getAvatar());
+            vo.setCommenterInfo(commenterUserInfo);
         }
         
         // 填充被回复者信息
         if (comment.getReplyToUserId() != null) {
-            User replyToUser = userMapper.selectById(comment.getReplyToUserId());
-            if (replyToUser != null) {
-                UserInfoVO replyToUserInfo = new UserInfoVO();
-                replyToUserInfo.setId(replyToUser.getId());
-                replyToUserInfo.setUsername(replyToUser.getUsername());
-                replyToUserInfo.setAvatar(replyToUser.getAvatar());
-                vo.setReplyToUserInfo(replyToUserInfo);
+            UserVO replyToUserInfo = userService.getUserInfo(comment.getReplyToUserId());
+            if (replyToUserInfo != null) {
+                UserInfoVO replyToUserInfoVO = new UserInfoVO();
+                replyToUserInfoVO.setId(replyToUserInfo.getId());
+                replyToUserInfoVO.setUsername(replyToUserInfo.getUsername());
+                replyToUserInfoVO.setAvatar(replyToUserInfo.getAvatar());
+                vo.setReplyToUserInfo(replyToUserInfoVO);
             }
         }
         
@@ -187,21 +188,21 @@ public class CommentServiceImpl implements CommentService {
         if (!replies.isEmpty()) {
             List<CommentVO> replyVOs = replies.stream().map(reply -> {
                 CommentVO replyVO = commentConverter.toVo(reply);
-                User replyCommenter = userMapper.selectById(reply.getCommenterId());
-                if (replyCommenter != null) {
-                    UserInfoVO replyCommenterInfo = new UserInfoVO();
-                    replyCommenterInfo.setId(replyCommenter.getId());
-                    replyCommenterInfo.setUsername(replyCommenter.getUsername());
-                    replyCommenterInfo.setAvatar(replyCommenter.getAvatar());
-                    replyVO.setCommenterInfo(replyCommenterInfo);
+                UserVO replyCommenterInfo = userService.getUserInfo(reply.getCommenterId());
+                if (replyCommenterInfo != null) {
+                    UserInfoVO replyCommenterUserInfo = new UserInfoVO();
+                    replyCommenterUserInfo.setId(replyCommenterInfo.getId());
+                    replyCommenterUserInfo.setUsername(replyCommenterInfo.getUsername());
+                    replyCommenterUserInfo.setAvatar(replyCommenterInfo.getAvatar());
+                    replyVO.setCommenterInfo(replyCommenterUserInfo);
                 }
                 if (reply.getReplyToUserId() != null) {
-                    User replyToUser = userMapper.selectById(reply.getReplyToUserId());
-                    if (replyToUser != null) {
-                        UserInfoVO replyToUserInfo = new UserInfoVO();
-                        replyToUserInfo.setId(replyToUser.getId());
-                        replyToUserInfo.setUsername(replyToUser.getUsername());
-                        replyVO.setReplyToUserInfo(replyToUserInfo);
+                    UserVO replyToUserInfo = userService.getUserInfo(reply.getReplyToUserId());
+                    if (replyToUserInfo != null) {
+                        UserInfoVO replyToUserInfoVO = new UserInfoVO();
+                        replyToUserInfoVO.setId(replyToUserInfo.getId());
+                        replyToUserInfoVO.setUsername(replyToUserInfo.getUsername());
+                        replyVO.setReplyToUserInfo(replyToUserInfoVO);
                     }
                 }
                 return replyVO;
@@ -232,23 +233,23 @@ public class CommentServiceImpl implements CommentService {
             CommentVO vo = commentConverter.toVo(comment);
             
             // 填充评论者信息
-            User commenter = userMapper.selectById(comment.getCommenterId());
-            if (commenter != null) {
-                UserInfoVO commenterInfo = new UserInfoVO();
-                commenterInfo.setId(commenter.getId());
-                commenterInfo.setUsername(commenter.getUsername());
-                commenterInfo.setAvatar(commenter.getAvatar());
-                vo.setCommenterInfo(commenterInfo);
+            UserVO commenterInfo = userService.getUserInfo(comment.getCommenterId());
+            if (commenterInfo != null) {
+                UserInfoVO commenterUserInfo = new UserInfoVO();
+                commenterUserInfo.setId(commenterInfo.getId());
+                commenterUserInfo.setUsername(commenterInfo.getUsername());
+                commenterUserInfo.setAvatar(commenterInfo.getAvatar());
+                vo.setCommenterInfo(commenterUserInfo);
             }
             
             // 填充被回复者信息
             if (comment.getReplyToUserId() != null) {
-                User replyToUser = userMapper.selectById(comment.getReplyToUserId());
-                if (replyToUser != null) {
-                    UserInfoVO replyToUserInfo = new UserInfoVO();
-                    replyToUserInfo.setId(replyToUser.getId());
-                    replyToUserInfo.setUsername(replyToUser.getUsername());
-                    vo.setReplyToUserInfo(replyToUserInfo);
+                UserVO replyToUserInfo = userService.getUserInfo(comment.getReplyToUserId());
+                if (replyToUserInfo != null) {
+                    UserInfoVO replyToUserInfoVO = new UserInfoVO();
+                    replyToUserInfoVO.setId(replyToUserInfo.getId());
+                    replyToUserInfoVO.setUsername(replyToUserInfo.getUsername());
+                    vo.setReplyToUserInfo(replyToUserInfoVO);
                 }
             }
             
@@ -257,13 +258,13 @@ public class CommentServiceImpl implements CommentService {
             if (!replies.isEmpty()) {
                 List<CommentVO> replyVOs = replies.stream().map(reply -> {
                     CommentVO replyVO = commentConverter.toVo(reply);
-                    User replyCommenter = userMapper.selectById(reply.getCommenterId());
-                    if (replyCommenter != null) {
-                        UserInfoVO replyCommenterInfo = new UserInfoVO();
-                        replyCommenterInfo.setId(replyCommenter.getId());
-                        replyCommenterInfo.setUsername(replyCommenter.getUsername());
-                        replyCommenterInfo.setAvatar(replyCommenter.getAvatar());
-                        replyVO.setCommenterInfo(replyCommenterInfo);
+                    UserVO replyCommenterInfo = userService.getUserInfo(reply.getCommenterId());
+                    if (replyCommenterInfo != null) {
+                        UserInfoVO replyCommenterUserInfo = new UserInfoVO();
+                        replyCommenterUserInfo.setId(replyCommenterInfo.getId());
+                        replyCommenterUserInfo.setUsername(replyCommenterInfo.getUsername());
+                        replyCommenterUserInfo.setAvatar(replyCommenterInfo.getAvatar());
+                        replyVO.setCommenterInfo(replyCommenterUserInfo);
                     }
                     return replyVO;
                 }).collect(Collectors.toList());
@@ -299,23 +300,23 @@ public class CommentServiceImpl implements CommentService {
             CommentVO vo = commentConverter.toVo(reply);
             
             // 填充评论者信息
-            User commenter = userMapper.selectById(reply.getCommenterId());
-            if (commenter != null) {
-                UserInfoVO commenterInfo = new UserInfoVO();
-                commenterInfo.setId(commenter.getId());
-                commenterInfo.setUsername(commenter.getUsername());
-                commenterInfo.setAvatar(commenter.getAvatar());
-                vo.setCommenterInfo(commenterInfo);
+            UserVO commenterInfo = userService.getUserInfo(reply.getCommenterId());
+            if (commenterInfo != null) {
+                UserInfoVO commenterUserInfo = new UserInfoVO();
+                commenterUserInfo.setId(commenterInfo.getId());
+                commenterUserInfo.setUsername(commenterInfo.getUsername());
+                commenterUserInfo.setAvatar(commenterInfo.getAvatar());
+                vo.setCommenterInfo(commenterUserInfo);
             }
             
             // 填充被回复者信息
             if (reply.getReplyToUserId() != null) {
-                User replyToUser = userMapper.selectById(reply.getReplyToUserId());
-                if (replyToUser != null) {
-                    UserInfoVO replyToUserInfo = new UserInfoVO();
-                    replyToUserInfo.setId(replyToUser.getId());
-                    replyToUserInfo.setUsername(replyToUser.getUsername());
-                    vo.setReplyToUserInfo(replyToUserInfo);
+                UserVO replyToUserInfo = userService.getUserInfo(reply.getReplyToUserId());
+                if (replyToUserInfo != null) {
+                    UserInfoVO replyToUserInfoVO = new UserInfoVO();
+                    replyToUserInfoVO.setId(replyToUserInfo.getId());
+                    replyToUserInfoVO.setUsername(replyToUserInfo.getUsername());
+                    vo.setReplyToUserInfo(replyToUserInfoVO);
                 }
             }
             

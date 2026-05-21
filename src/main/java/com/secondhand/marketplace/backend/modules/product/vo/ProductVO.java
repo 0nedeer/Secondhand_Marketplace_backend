@@ -63,6 +63,9 @@ public class ProductVO {
     @Schema(description = "发布状态")
     private String publishStatus;
 
+    @Schema(description = "拒绝原因")
+    private String rejectReason;
+
     @Schema(description = "浏览次数")
     private Integer viewCount;
 

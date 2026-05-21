@@ -59,6 +59,8 @@ public interface UserService {
     UserStatsVO getUserStats(Long userId);
 
     // 管理员功能
+    AdminUserPageVO pageUsers(Long adminId, Boolean isAdmin, Boolean canBuy, Boolean canSell,
+                              String userStatus, long page, long pageSize);
     void banUser(Long adminId, Long userId);
     void unbanUser(Long adminId, Long userId);
     void toggleCanBuy(Long userId, Boolean canBuy);

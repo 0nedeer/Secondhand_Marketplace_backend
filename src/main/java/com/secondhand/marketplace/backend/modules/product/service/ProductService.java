@@ -19,5 +19,17 @@ public interface ProductService extends IService<Product> {
     
     ProductVO getProductDetail(Long id);
     
-    PageResult<ProductVO> getProductPage(ProductPageQueryDTO queryDTO);
+    PageResult<ProductVO> getProductPage(ProductPageQueryDTO queryDTO, Long currentUserId);
+
+    PageResult<ProductVO> getMyProductPage(ProductPageQueryDTO queryDTO, Long currentUserId);
+
+    PageResult<ProductVO> getSellerProducts(Long sellerId, ProductPageQueryDTO queryDTO);
+
+    boolean auditProduct(Long productId, Long adminId, Boolean approved, String rejectReason);
+    
+    // 卖家流程控制
+    boolean submitForReview(Long id, Long sellerId);
+    boolean revokeReview(Long id, Long sellerId);
+    boolean relistProduct(Long id, Long sellerId);
 }
+

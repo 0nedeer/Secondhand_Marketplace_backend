@@ -5,6 +5,7 @@ target/
 .idea/
 .vscode/
 *.iml
+.mybatis/
 
 # Logs
 *.log

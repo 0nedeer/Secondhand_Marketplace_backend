@@ -1,21 +1,50 @@
 package com.secondhand.marketplace.backend.modules.forum.service.impl;
 
+import com.secondhand.marketplace.backend.common.exception.BusinessException;
+import com.secondhand.marketplace.backend.modules.admin.service.AdminAuthService;
 import com.secondhand.marketplace.backend.modules.forum.convert.PostConverter;
 import com.secondhand.marketplace.backend.modules.forum.dto.PostCreateDTO;
 import com.secondhand.marketplace.backend.modules.forum.dto.PostSearchDTO;
 import com.secondhand.marketplace.backend.modules.forum.dto.PostUpdateDTO;
-import com.secondhand.marketplace.backend.modules.forum.entity.*;
-import com.secondhand.marketplace.backend.modules.forum.mapper.*;
+import com.secondhand.marketplace.backend.modules.forum.entity.AdminLog;
+import com.secondhand.marketplace.backend.modules.forum.entity.ForumCategory;
+import com.secondhand.marketplace.backend.modules.forum.entity.ForumCollect;
+import com.secondhand.marketplace.backend.modules.forum.entity.ForumPost;
+import com.secondhand.marketplace.backend.modules.forum.entity.ForumPostMedia;
+import com.secondhand.marketplace.backend.modules.forum.entity.ForumPostShare;
+import com.secondhand.marketplace.backend.modules.forum.entity.ForumPostTag;
+import com.secondhand.marketplace.backend.modules.forum.entity.ForumPostViewDaily;
+import com.secondhand.marketplace.backend.modules.forum.entity.ForumReaction;
+import com.secondhand.marketplace.backend.modules.forum.entity.ForumTag;
+import com.secondhand.marketplace.backend.modules.forum.mapper.AdminLogMapper;
+import com.secondhand.marketplace.backend.modules.forum.mapper.ForumCategoryMapper;
+import com.secondhand.marketplace.backend.modules.forum.mapper.ForumCollectMapper;
+import com.secondhand.marketplace.backend.modules.forum.mapper.ForumPostMapper;
+import com.secondhand.marketplace.backend.modules.forum.mapper.ForumPostMediaMapper;
+import com.secondhand.marketplace.backend.modules.forum.mapper.ForumPostShareMapper;
+import com.secondhand.marketplace.backend.modules.forum.mapper.ForumPostTagMapper;
+import com.secondhand.marketplace.backend.modules.forum.mapper.ForumPostViewDailyMapper;
+import com.secondhand.marketplace.backend.modules.forum.mapper.ForumReactionMapper;
+import com.secondhand.marketplace.backend.modules.forum.mapper.ForumTagMapper;
 import com.secondhand.marketplace.backend.modules.forum.service.PostService;
-import com.secondhand.marketplace.backend.modules.forum.vo.*;
+import com.secondhand.marketplace.backend.modules.forum.vo.PageResult;
+import com.secondhand.marketplace.backend.modules.forum.vo.PostListVO;
+import com.secondhand.marketplace.backend.modules.forum.vo.PostVO;
+import com.secondhand.marketplace.backend.modules.forum.vo.TagVO;
+import com.secondhand.marketplace.backend.modules.forum.vo.UserInfoVO;
+import com.secondhand.marketplace.backend.modules.user.entity.UserAccount;
+import com.secondhand.marketplace.backend.modules.user.mapper.UserAccountMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.time.LocalDate;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -23,7 +52,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class PostServiceImpl implements PostService {
-    
+
     private final ForumPostMapper postMapper;
     private final ForumPostTagMapper postTagMapper;
     private final ForumPostMediaMapper postMediaMapper;
@@ -31,29 +60,27 @@ public class PostServiceImpl implements PostService {
     private final ForumCollectMapper collectMapper;
     private final ForumPostShareMapper shareMapper;
     private final ForumPostViewDailyMapper viewDailyMapper;
-    private final UserMapper userMapper;
     private final ForumTagMapper tagMapper;
     private final ForumCategoryMapper categoryMapper;
+    private final AdminLogMapper adminLogMapper;
+    private final UserAccountMapper userAccountMapper;
     private final PostConverter postConverter;
-    
+    private final AdminAuthService adminAuthService;
+
     @Override
     public Long createPost(Long userId, PostCreateDTO dto) {
-        // 1. 校验用户是否被禁言
-        User user = userMapper.selectById(userId);
-        if (user.getIsMuted() == 1) {
-            if (user.getMuteExpireAt() != null && user.getMuteExpireAt().isAfter(LocalDateTime.now())) {
-                throw new RuntimeException("您已被禁言，无法发布帖子");
-            }
+        UserAccount user = userAccountMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(401, "请先登录");
         }
-        
-        // 2. DTO转Entity
+        if ("banned".equals(user.getUserStatus())) {
+            throw new BusinessException(403, "账号已被封禁，无法发帖");
+        }
+
         ForumPost post = postConverter.toEntity(dto);
         post.setAuthorId(userId);
-        
-        // 3. 保存帖子
         postMapper.insert(post);
-        
-        // 4. 保存标签关联
+
         if (dto.getTagIds() != null && !dto.getTagIds().isEmpty()) {
             for (Long tagId : dto.getTagIds()) {
                 ForumPostTag postTag = ForumPostTag.builder()
@@ -64,38 +91,25 @@ public class PostServiceImpl implements PostService {
                 postTagMapper.insert(postTag);
             }
         }
-        
-        log.info("用户 {} 创建帖子成功，帖子ID：{}", userId, post.getId());
         return post.getId();
     }
-    
+
     @Override
     public boolean updatePost(Long userId, PostUpdateDTO dto) {
-        // 1. 查询原帖子
         ForumPost post = postMapper.selectById(dto.getId());
         if (post == null) {
             return false;
         }
-        
-        // 2. 权限校验：只有作者或管理员可以编辑
-        if (!post.getAuthorId().equals(userId)) {
-            User user = userMapper.selectById(userId);
-            if (!"admin".equals(user.getRole()) && !"super_admin".equals(user.getRole())) {
-                throw new RuntimeException("无权编辑此帖子");
-            }
+        if (!post.getAuthorId().equals(userId) && !adminAuthService.isAdmin(userId)) {
+            throw new BusinessException(403, "无权编辑此帖子");
         }
-        
-        // 3. 已发布的帖子编辑后需要重新审核
-        if ("approved".equals(post.getAuditStatus())) {
+        if ("approved".equals(post.getAuditStatus()) && !adminAuthService.isAdmin(userId)) {
             post.setAuditStatus("pending");
         }
-        
-        // 4. 更新帖子
         postConverter.updateEntity(dto, post);
         post.setUpdatedAt(LocalDateTime.now());
         postMapper.updateById(post);
-        
-        // 5. 更新标签关联（先删后增）
+
         if (dto.getTagIds() != null) {
             postTagMapper.deleteByPostId(post.getId());
             for (Long tagId : dto.getTagIds()) {
@@ -107,71 +121,61 @@ public class PostServiceImpl implements PostService {
                 postTagMapper.insert(postTag);
             }
         }
-        
-        log.info("用户 {} 更新帖子成功，帖子ID：{}", userId, post.getId());
         return true;
     }
-    
+
     @Override
     public boolean deletePost(Long userId, Long postId) {
         ForumPost post = postMapper.selectById(postId);
         if (post == null) {
             return false;
         }
-        
-        // 权限校验
-        if (!post.getAuthorId().equals(userId)) {
-            User user = userMapper.selectById(userId);
-            if (!"admin".equals(user.getRole()) && !"super_admin".equals(user.getRole())) {
-                throw new RuntimeException("无权删除此帖子");
-            }
+        boolean admin = adminAuthService.isAdmin(userId);
+        if (!post.getAuthorId().equals(userId) && !admin) {
+            throw new BusinessException(403, "无权删除此帖子");
         }
-        
-        // 软删除
+
+        String beforeData = snapshot(post);
         post.setIsDeleted(1);
         post.setUpdatedAt(LocalDateTime.now());
         postMapper.updateById(post);
-        
-        log.info("用户 {} 删除帖子成功，帖子ID：{}", userId, postId);
+        if (admin && !post.getAuthorId().equals(userId)) {
+            recordAdminLog(userId, "post", postId, "delete_post", "管理员删除帖子", beforeData, snapshot(post));
+        }
         return true;
     }
-    
+
     @Override
     public PostVO getPostDetail(Long userId, Long postId) {
         ForumPost post = postMapper.selectById(postId);
-        if (post == null || post.getIsDeleted() == 1) {
+        if (post == null || Integer.valueOf(1).equals(post.getIsDeleted())) {
             return null;
         }
-        
-        // 转换基本信息
+
         PostVO vo = postConverter.toVo(post);
-        
-        // 填充分类名称
+        vo.setCategoryId(post.getCategoryId());
+        vo.setStatus(post.getAuditStatus());
+        vo.setIsTop("top".equals(post.getDisplayStatus()));
+        vo.setIsFeatured("featured".equals(post.getDisplayStatus()));
+
         ForumCategory category = categoryMapper.selectById(post.getCategoryId());
         if (category != null) {
             vo.setCategoryName(category.getName());
         }
-        
-        // 填充作者信息
-        User author = userMapper.selectById(post.getAuthorId());
+
+        UserAccount author = userAccountMapper.selectById(post.getAuthorId());
         if (author != null) {
             UserInfoVO authorInfo = new UserInfoVO();
             authorInfo.setId(author.getId());
-            authorInfo.setUsername(author.getUsername());
-            authorInfo.setAvatar(author.getAvatar());
-            authorInfo.setBio(author.getBio());
-            authorInfo.setCreditScore(author.getCreditScore());
+            authorInfo.setUsername(author.getNickname() == null ? author.getUsername() : author.getNickname());
             vo.setAuthorInfo(authorInfo);
         }
-        
-        // 填充标签列表
+
         List<ForumPostTag> postTags = postTagMapper.selectByPostId(postId);
         if (!postTags.isEmpty()) {
-            List<Long> tagIds = postTags.stream().map(ForumPostTag::getTagId).collect(Collectors.toList());
-            // 逐个查询标签
             List<TagVO> tagVOs = new ArrayList<>();
-            for (Long tagId : tagIds) {
-                ForumTag tag = tagMapper.selectById(tagId);
+            for (ForumPostTag postTag : postTags) {
+                ForumTag tag = tagMapper.selectById(postTag.getTagId());
                 if (tag != null) {
                     TagVO tagVO = new TagVO();
                     tagVO.setId(tag.getId());
@@ -182,151 +186,86 @@ public class PostServiceImpl implements PostService {
             }
             vo.setTags(tagVOs);
         }
-        
-        // 填充媒体附件
-        List<ForumPostMedia> mediaList = postMediaMapper.selectByPostId(postId);
-        List<PostVO.MediaVO> mediaVOs = mediaList.stream().map(m -> {
+
+        List<PostVO.MediaVO> mediaVOs = postMediaMapper.selectByPostId(postId).stream().map(media -> {
             PostVO.MediaVO mediaVO = new PostVO.MediaVO();
-            mediaVO.setId(m.getId());
-            mediaVO.setMediaType(m.getMediaType());
-            mediaVO.setMediaUrl(m.getMediaUrl());
-            mediaVO.setCoverUrl(m.getCoverUrl());
-            mediaVO.setSortNo(m.getSortNo());
+            mediaVO.setId(media.getId());
+            mediaVO.setMediaType(media.getMediaType());
+            mediaVO.setMediaUrl(media.getMediaUrl());
+            mediaVO.setCoverUrl(media.getCoverUrl());
+            mediaVO.setSortNo(media.getSortNo());
             return mediaVO;
         }).collect(Collectors.toList());
         vo.setMediaList(mediaVOs);
-        
-        // 当前用户的互动状态
+
         if (userId != null) {
-            // 是否点赞
             ForumReaction like = reactionMapper.selectByUserAndTarget(userId, "post", postId);
             vo.setIsLiked(like != null && "like".equals(like.getReactionType()));
-            
-            // 是否收藏
             ForumCollect collect = collectMapper.selectByUserAndPost(userId, postId);
             vo.setIsCollected(collect != null);
         }
-        
         return vo;
     }
-    
+
     @Override
     public PageResult<PostListVO> listPosts(Long userId, PostSearchDTO searchDTO) {
-        // 计算offset
-        int offset = (searchDTO.getPageNum() - 1) * searchDTO.getPageSize();
-        
-        // 查询列表
+        int pageNum = searchDTO.getPageNum() == null || searchDTO.getPageNum() < 1 ? 1 : searchDTO.getPageNum();
+        int pageSize = searchDTO.getPageSize() == null || searchDTO.getPageSize() < 1 ? 10 : searchDTO.getPageSize();
+        int offset = (pageNum - 1) * pageSize;
+
+        boolean admin = adminAuthService.isAdmin(userId);
+        String auditStatus = admin ? firstText(searchDTO.getStatus(), searchDTO.getAuditStatus()) : "approved";
+
         List<ForumPost> posts = postMapper.selectPageList(
                 searchDTO.getCategoryId(),
                 searchDTO.getPostType(),
-                "approved",  // 只查已审核通过的
+                auditStatus,
                 searchDTO.getDisplayStatus(),
                 searchDTO.getKeyword(),
-                null,  // authorId
-                searchDTO.getSortBy(),
-                searchDTO.getOrder(),
+                null,
+                sanitizeSortBy(searchDTO.getSortBy()),
+                sanitizeOrder(searchDTO.getOrder()),
                 offset,
-                searchDTO.getPageSize()
+                pageSize
         );
-        
-        // 查询总数
+
         long total = postMapper.countByCondition(
                 searchDTO.getCategoryId(),
                 searchDTO.getPostType(),
-                "approved",
+                auditStatus,
                 searchDTO.getDisplayStatus(),
                 searchDTO.getKeyword(),
-                null  // authorId
+                null
         );
-        
-        // 转换为VO
-        List<PostListVO> voList = new ArrayList<>();
-        for (ForumPost post : posts) {
-            PostListVO vo = postConverter.toListVo(post);
-            
-            // 填充作者信息
-            User author = userMapper.selectById(post.getAuthorId());
-            if (author != null) {
-                vo.setAuthorName(author.getUsername());
-                vo.setAuthorAvatar(author.getAvatar());
-            }
-            
-            // 填充首张图片
-            List<ForumPostMedia> mediaList = postMediaMapper.selectByPostId(post.getId());
-            if (!mediaList.isEmpty()) {
-                vo.setFirstMediaUrl(mediaList.get(0).getMediaUrl());
-            }
-            
-            // 填充标签名称
-            List<ForumPostTag> postTags = postTagMapper.selectByPostId(post.getId());
-            if (!postTags.isEmpty()) {
-                List<Long> tagIds = postTags.stream().map(ForumPostTag::getTagId).collect(Collectors.toList());
-                List<String> tagNames = new ArrayList<>();
-                for (Long tagId : tagIds) {
-                    ForumTag tag = tagMapper.selectById(tagId);
-                    if (tag != null) {
-                        tagNames.add(tag.getTagName());
-                    }
-                }
-                vo.setTagNames(tagNames);
-            }
-            
-            voList.add(vo);
-        }
-        
-        return new PageResult<>(total, searchDTO.getPageNum(), searchDTO.getPageSize(), voList);
-    }
-    
-    @Override
-    public PageResult<PostListVO> listUserPosts(Long currentUserId, Long authorId, Integer pageNum, Integer pageSize) {
-        int offset = (pageNum - 1) * pageSize;
-        
-        List<ForumPost> posts = postMapper.selectByAuthorId(authorId, offset, pageSize);
-        long total = postMapper.countByCondition(null, null, null, null, null, authorId);
-        
-        // 转换为VO
-        List<PostListVO> voList = posts.stream().map(post -> {
-            PostListVO vo = postConverter.toListVo(post);
-            User author = userMapper.selectById(post.getAuthorId());
-            if (author != null) {
-                vo.setAuthorName(author.getUsername());
-                vo.setAuthorAvatar(author.getAvatar());
-            }
-            
-            // 填充首张图片
-            List<ForumPostMedia> mediaList = postMediaMapper.selectByPostId(post.getId());
-            if (!mediaList.isEmpty()) {
-                vo.setFirstMediaUrl(mediaList.get(0).getMediaUrl());
-            }
-            
-            // 填充标签名称
-            List<ForumPostTag> postTags = postTagMapper.selectByPostId(post.getId());
-            if (!postTags.isEmpty()) {
-                List<Long> tagIds = postTags.stream().map(ForumPostTag::getTagId).collect(Collectors.toList());
-                List<String> tagNames = new ArrayList<>();
-                for (Long tagId : tagIds) {
-                    ForumTag tag = tagMapper.selectById(tagId);
-                    if (tag != null) {
-                        tagNames.add(tag.getTagName());
-                    }
-                }
-                vo.setTagNames(tagNames);
-            }
-            
-            return vo;
-        }).collect(Collectors.toList());
-        
+
+        List<PostListVO> voList = posts.stream().map(this::toListVO).collect(Collectors.toList());
         return new PageResult<>(total, pageNum, pageSize, voList);
     }
-    
+
+    @Override
+    public PageResult<PostListVO> listUserPosts(Long currentUserId, Long authorId, Integer pageNum, Integer pageSize) {
+        int safePageNum = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        int safePageSize = pageSize == null || pageSize < 1 ? 10 : pageSize;
+        int offset = (safePageNum - 1) * safePageSize;
+        List<ForumPost> posts = postMapper.selectByAuthorId(authorId, offset, safePageSize);
+        long total = postMapper.countByCondition(null, null, null, null, null, authorId);
+        List<PostListVO> voList = posts.stream().map(this::toListVO).collect(Collectors.toList());
+        return new PageResult<>(total, safePageNum, safePageSize, voList);
+    }
+
     @Override
     public boolean auditPost(Long adminId, Long postId, Boolean approved, String rejectReason) {
+        adminAuthService.requireAdmin(adminId);
         ForumPost post = postMapper.selectById(postId);
         if (post == null) {
             return false;
         }
-        
-        if (approved) {
+        if (Boolean.FALSE.equals(approved) && (rejectReason == null || rejectReason.isBlank())) {
+            throw new BusinessException(400, "驳回原因不能为空");
+        }
+
+        String beforeData = snapshot(post);
+        if (Boolean.TRUE.equals(approved)) {
             post.setAuditStatus("approved");
             post.setPublishedAt(LocalDateTime.now());
             post.setRejectReason(null);
@@ -336,59 +275,54 @@ public class PostServiceImpl implements PostService {
         }
         post.setUpdatedAt(LocalDateTime.now());
         postMapper.updateById(post);
-        
-        log.info("管理员 {} 审核帖子 {}，结果：{}", adminId, postId, approved ? "通过" : "驳回");
+        recordAdminLog(adminId, "post", postId, Boolean.TRUE.equals(approved) ? "approve_post" : "reject_post",
+                rejectReason, beforeData, snapshot(post));
         return true;
     }
-    
+
     @Override
     public boolean topPost(Long adminId, Long postId, Boolean top) {
+        adminAuthService.requireAdmin(adminId);
         ForumPost post = postMapper.selectById(postId);
         if (post == null) {
             return false;
         }
-        
-        post.setDisplayStatus(top ? "top" : "normal");
+        String beforeData = snapshot(post);
+        post.setDisplayStatus(Boolean.TRUE.equals(top) ? "top" : "normal");
         post.setUpdatedAt(LocalDateTime.now());
         postMapper.updateById(post);
-        
-        log.info("管理员 {} {}帖子 {}", adminId, top ? "置顶" : "取消置顶", postId);
+        recordAdminLog(adminId, "post", postId, Boolean.TRUE.equals(top) ? "top_post" : "untop_post",
+                null, beforeData, snapshot(post));
         return true;
     }
-    
+
     @Override
     public boolean featurePost(Long adminId, Long postId, Boolean featured) {
+        adminAuthService.requireAdmin(adminId);
         ForumPost post = postMapper.selectById(postId);
         if (post == null) {
             return false;
         }
-        
-        post.setDisplayStatus(featured ? "featured" : "normal");
+        String beforeData = snapshot(post);
+        post.setDisplayStatus(Boolean.TRUE.equals(featured) ? "featured" : "normal");
         post.setUpdatedAt(LocalDateTime.now());
         postMapper.updateById(post);
-        
-        log.info("管理员 {} {}精华帖 {}", adminId, featured ? "设为" : "取消", postId);
+        recordAdminLog(adminId, "post", postId, Boolean.TRUE.equals(featured) ? "feature_post" : "unfeature_post",
+                null, beforeData, snapshot(post));
         return true;
     }
-    
+
     @Override
     public Integer likePost(Long userId, Long postId) {
         ForumPost post = postMapper.selectById(postId);
         if (post == null) {
             return null;
         }
-        
         ForumReaction existing = reactionMapper.selectByUserAndTarget(userId, "post", postId);
-        
         if (existing != null) {
-            // 取消点赞
             reactionMapper.deleteById(existing.getId());
-            post.setLikeCount(post.getLikeCount() - 1);
-            post.setUpdatedAt(LocalDateTime.now());
-            postMapper.updateById(post);
-            return post.getLikeCount();
+            post.setLikeCount(Math.max(0, post.getLikeCount() - 1));
         } else {
-            // 点赞
             ForumReaction reaction = ForumReaction.builder()
                     .targetType("post")
                     .targetId(postId)
@@ -398,30 +332,23 @@ public class PostServiceImpl implements PostService {
                     .build();
             reactionMapper.insert(reaction);
             post.setLikeCount(post.getLikeCount() + 1);
-            post.setUpdatedAt(LocalDateTime.now());
-            postMapper.updateById(post);
-            return post.getLikeCount();
         }
+        post.setUpdatedAt(LocalDateTime.now());
+        postMapper.updateById(post);
+        return post.getLikeCount();
     }
-    
+
     @Override
     public Integer collectPost(Long userId, Long postId) {
         ForumPost post = postMapper.selectById(postId);
         if (post == null) {
             return null;
         }
-        
         ForumCollect existing = collectMapper.selectByUserAndPost(userId, postId);
-        
         if (existing != null) {
-            // 取消收藏
             collectMapper.deleteById(existing.getId());
-            post.setCollectCount(post.getCollectCount() - 1);
-            post.setUpdatedAt(LocalDateTime.now());
-            postMapper.updateById(post);
-            return post.getCollectCount();
+            post.setCollectCount(Math.max(0, post.getCollectCount() - 1));
         } else {
-            // 收藏
             ForumCollect collect = ForumCollect.builder()
                     .userId(userId)
                     .postId(postId)
@@ -429,28 +356,24 @@ public class PostServiceImpl implements PostService {
                     .build();
             collectMapper.insert(collect);
             post.setCollectCount(post.getCollectCount() + 1);
-            post.setUpdatedAt(LocalDateTime.now());
-            postMapper.updateById(post);
-            return post.getCollectCount();
         }
+        post.setUpdatedAt(LocalDateTime.now());
+        postMapper.updateById(post);
+        return post.getCollectCount();
     }
-    
+
     @Override
     public void recordView(Long userId, Long postId) {
         ForumPost post = postMapper.selectById(postId);
         if (post == null) {
             return;
         }
-        
-        // 更新帖子浏览数
         post.setViewCount(post.getViewCount() + 1);
         post.setUpdatedAt(LocalDateTime.now());
         postMapper.updateById(post);
-        
-        // 记录日统计
-        LocalDate today = LocalDateTime.now().toLocalDate();
+
+        LocalDate today = LocalDate.now();
         ForumPostViewDaily daily = viewDailyMapper.selectByPostIdAndDate(postId, today.toString());
-        
         if (daily == null) {
             daily = ForumPostViewDaily.builder()
                     .postId(postId)
@@ -463,21 +386,18 @@ public class PostServiceImpl implements PostService {
         } else {
             daily.setPvCount(daily.getPvCount() + 1);
             if (userId != null) {
-                // 简化UV统计
                 daily.setUvCount(daily.getUvCount() + 1);
             }
             viewDailyMapper.updateById(daily);
         }
     }
-    
+
     @Override
     public boolean sharePost(Long userId, Long postId, String channel) {
         ForumPost post = postMapper.selectById(postId);
         if (post == null) {
             return false;
         }
-        
-        // 记录转发
         ForumPostShare share = ForumPostShare.builder()
                 .postId(postId)
                 .userId(userId)
@@ -485,13 +405,102 @@ public class PostServiceImpl implements PostService {
                 .createdAt(LocalDateTime.now())
                 .build();
         shareMapper.insert(share);
-        
-        // 更新转发数
         post.setShareCount(post.getShareCount() + 1);
         post.setUpdatedAt(LocalDateTime.now());
         postMapper.updateById(post);
-        
-        log.info("用户 {} 转发帖子 {} 到 {}", userId, postId, channel);
         return true;
+    }
+
+    private PostListVO toListVO(ForumPost post) {
+        PostListVO vo = postConverter.toListVo(post);
+        vo.setAuthorId(post.getAuthorId());
+        vo.setCategoryId(post.getCategoryId());
+        vo.setStatus(post.getAuditStatus());
+        vo.setIsTop("top".equals(post.getDisplayStatus()));
+        vo.setIsFeatured("featured".equals(post.getDisplayStatus()));
+        vo.setUpdatedAt(post.getUpdatedAt());
+        if (post.getContent() != null) {
+            vo.setContent(post.getContent().length() > 120 ? post.getContent().substring(0, 120) : post.getContent());
+        }
+
+        UserAccount author = userAccountMapper.selectById(post.getAuthorId());
+        if (author != null) {
+            vo.setAuthorName(author.getNickname() == null ? author.getUsername() : author.getNickname());
+        }
+        ForumCategory category = categoryMapper.selectById(post.getCategoryId());
+        if (category != null) {
+            vo.setCategoryName(category.getName());
+        }
+        List<ForumPostMedia> mediaList = postMediaMapper.selectByPostId(post.getId());
+        if (!mediaList.isEmpty()) {
+            vo.setFirstMediaUrl(mediaList.get(0).getMediaUrl());
+        }
+        List<ForumPostTag> postTags = postTagMapper.selectByPostId(post.getId());
+        if (!postTags.isEmpty()) {
+            List<String> tagNames = new ArrayList<>();
+            for (ForumPostTag postTag : postTags) {
+                ForumTag tag = tagMapper.selectById(postTag.getTagId());
+                if (tag != null) {
+                    tagNames.add(tag.getTagName());
+                }
+            }
+            vo.setTagNames(tagNames);
+        }
+        return vo;
+    }
+
+    private String firstText(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first.trim();
+        }
+        if (second != null && !second.isBlank()) {
+            return second.trim();
+        }
+        return null;
+    }
+
+    private String sanitizeSortBy(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return null;
+        }
+        Set<String> allowed = Set.of("created_at", "published_at", "like_count", "view_count", "comment_count");
+        String normalized = sortBy.trim();
+        return allowed.contains(normalized) ? normalized : "created_at";
+    }
+
+    private String sanitizeOrder(String order) {
+        if (order == null || order.isBlank()) {
+            return null;
+        }
+        String normalized = order.trim().toUpperCase(Locale.ROOT);
+        return "ASC".equals(normalized) ? "ASC" : "DESC";
+    }
+
+    private void recordAdminLog(Long adminId,
+                                String targetType,
+                                Long targetId,
+                                String action,
+                                String reason,
+                                String beforeData,
+                                String afterData) {
+        AdminLog log = new AdminLog();
+        log.setAdminId(adminId);
+        log.setTargetType(targetType);
+        log.setTargetId(targetId);
+        log.setAction(action);
+        log.setReason(reason);
+        log.setBeforeData(beforeData);
+        log.setAfterData(afterData);
+        log.setCreatedAt(LocalDateTime.now());
+        adminLogMapper.insert(log);
+    }
+
+    private String snapshot(ForumPost post) {
+        if (post == null) {
+            return null;
+        }
+        return String.format(Locale.ROOT,
+                "{\"id\":%d,\"auditStatus\":\"%s\",\"displayStatus\":\"%s\",\"isDeleted\":%d}",
+                post.getId(), post.getAuditStatus(), post.getDisplayStatus(), post.getIsDeleted());
     }
 }

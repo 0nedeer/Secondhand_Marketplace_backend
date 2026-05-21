@@ -1,6 +1,7 @@
 package com.secondhand.marketplace.backend.modules.forum.controller;
 
 import com.secondhand.marketplace.backend.common.api.Result;
+import com.secondhand.marketplace.backend.common.context.UserContext;
 import com.secondhand.marketplace.backend.config.TestConfig;
 import com.secondhand.marketplace.backend.modules.forum.dto.CommentCreateDTO;
 import com.secondhand.marketplace.backend.modules.forum.dto.CommentUpdateDTO;
@@ -14,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -30,10 +30,11 @@ public class ForumCommentController {
     private final CommentService commentService;
     private final TestConfig testConfig;
 
-    private Long getCurrentUserId(HttpServletRequest request) {
-        Object userId = request.getAttribute("userId");
+    private Long getCurrentUserId() {
+        // 从UserContext获取当前登录用户ID
+        Long userId = UserContext.getCurrentUserId();
         if (userId != null) {
-            return (Long) userId;
+            return userId;
         }
         
         // 测试模式：使用默认用户ID
@@ -47,9 +48,8 @@ public class ForumCommentController {
     @PostMapping("/create")
     @Operation(summary = "发表评论")
     public Result<Long> createComment(
-            @Valid @RequestBody CommentCreateDTO dto,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
+            @Valid @RequestBody CommentCreateDTO dto) {
+        Long userId = getCurrentUserId();
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
@@ -60,9 +60,8 @@ public class ForumCommentController {
     @PutMapping("/update")
     @Operation(summary = "编辑评论")
     public Result<Void> updateComment(
-            @Valid @RequestBody CommentUpdateDTO dto,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
+            @Valid @RequestBody CommentUpdateDTO dto) {
+        Long userId = getCurrentUserId();
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
@@ -73,9 +72,8 @@ public class ForumCommentController {
     @DeleteMapping("/{commentId}")
     @Operation(summary = "删除评论")
     public Result<Void> deleteComment(
-            @PathVariable @NotNull Long commentId,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
+            @PathVariable @NotNull Long commentId) {
+        Long userId = getCurrentUserId();
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
@@ -86,9 +84,8 @@ public class ForumCommentController {
     @GetMapping("/{commentId}")
     @Operation(summary = "获取评论详情")
     public Result<CommentVO> getCommentDetail(
-            @PathVariable @NotNull Long commentId,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
+            @PathVariable @NotNull Long commentId) {
+        Long userId = getCurrentUserId();
         CommentVO vo = commentService.getCommentDetail(userId, commentId);
         return Result.success(vo);
     }
@@ -98,9 +95,8 @@ public class ForumCommentController {
     public Result<PageResult<CommentVO>> listComments(
             @PathVariable @NotNull Long postId,
             @RequestParam(defaultValue = "1") @Min(1) Integer pageNum,
-            @RequestParam(defaultValue = "10") @Min(1) Integer pageSize,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
+            @RequestParam(defaultValue = "10") @Min(1) Integer pageSize) {
+        Long userId = getCurrentUserId();
         PageResult<CommentVO> result = commentService.listComments(userId, postId, pageNum, pageSize);
         return Result.success(result);
     }
@@ -108,9 +104,8 @@ public class ForumCommentController {
     @PostMapping("/{commentId}/like")
     @Operation(summary = "点赞/取消点赞评论")
     public Result<Integer> likeComment(
-            @PathVariable @NotNull Long commentId,
-            HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
+            @PathVariable @NotNull Long commentId) {
+        Long userId = getCurrentUserId();
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
@@ -125,9 +120,8 @@ public class ForumCommentController {
     public Result<Void> auditComment(
             @PathVariable @NotNull Long commentId,
             @RequestParam Boolean approved,
-            @RequestParam(required = false) String rejectReason,
-            HttpServletRequest request) {
-        Long adminId = getCurrentUserId(request);
+            @RequestParam(required = false) String rejectReason) {
+        Long adminId = getCurrentUserId();
         if (adminId == null) {
             return Result.error(401, "请先登录");
         }

@@ -4,11 +4,11 @@ import com.secondhand.marketplace.backend.modules.forum.convert.CategoryConverte
 import com.secondhand.marketplace.backend.modules.forum.dto.CategoryCreateDTO;
 import com.secondhand.marketplace.backend.modules.forum.dto.CategoryUpdateDTO;
 import com.secondhand.marketplace.backend.modules.forum.entity.ForumCategory;
-import com.secondhand.marketplace.backend.modules.forum.entity.User;
 import com.secondhand.marketplace.backend.modules.forum.mapper.ForumCategoryMapper;
-import com.secondhand.marketplace.backend.modules.forum.mapper.UserMapper;
 import com.secondhand.marketplace.backend.modules.forum.service.CategoryService;
 import com.secondhand.marketplace.backend.modules.forum.vo.CategoryVO;
+import com.secondhand.marketplace.backend.modules.user.service.UserService;
+import com.secondhand.marketplace.backend.modules.user.vo.UserPermissionsVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,14 +27,14 @@ import java.util.Map;
 public class CategoryServiceImpl implements CategoryService {
     
     private final ForumCategoryMapper categoryMapper;
-    private final UserMapper userMapper;
+    private final UserService userService;
     private final CategoryConverter categoryConverter;
     
     @Override
     public Long createCategory(Long adminId, CategoryCreateDTO dto) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限创建分类");
         }
         
@@ -61,8 +61,8 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public void updateCategory(Long adminId, CategoryUpdateDTO dto) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限更新分类");
         }
         
@@ -95,8 +95,8 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public void deleteCategory(Long adminId, Long categoryId) {
         // 权限校验
-        User admin = userMapper.selectById(adminId);
-        if (!"admin".equals(admin.getRole()) && !"super_admin".equals(admin.getRole())) {
+        UserPermissionsVO permissions = userService.getUserPermissions(adminId);
+        if (!permissions.getIsAdmin()) {
             throw new RuntimeException("无权限删除分类");
         }
         

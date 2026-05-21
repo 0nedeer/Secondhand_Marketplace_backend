@@ -74,7 +74,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     private final OrderShipmentMapper orderShipmentMapper;
     private final LogisticsTraceMapper logisticsTraceMapper;
     private final TradeProductMapper tradeProductMapper;
-    private final ProductImageMapper productImageMapper;
+    private final ProductImageMapper ProductImageMapper;
     private final UserAccountMapper userAccountMapper;
 
     @Override
@@ -123,7 +123,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             OrderItem item = new OrderItem();
             item.setProductId(productId);
             item.setProductTitle(product.getTitle());
-            item.setProductImageUrl(productImageMapper.selectCoverImageByProductId(productId));
+            item.setProductImageUrl(ProductImageMapper.selectCoverImageByProductId(productId));
             item.setUnitPrice(product.getSellingPrice());
             item.setQuantity(quantity);
             item.setSubtotalAmount(subtotal);
