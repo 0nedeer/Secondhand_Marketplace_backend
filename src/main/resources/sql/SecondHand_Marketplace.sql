@@ -1798,3 +1798,93 @@ UNLOCK TABLES;
 
 -- Dump completed on 2026-04-13 13:45:48
 
+/*消息模块表*/
+-- 1. 会话表（记录各类独立场景聊天主体）
+CREATE TABLE IF NOT EXISTS `conversation` (
+                                              `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '会话ID',
+                                              `conversation_type` ENUM('product_consult', 'order_service', 'system') NOT NULL DEFAULT 'product_consult' COMMENT '会话类型',
+    `product_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '关联商品ID',
+    `order_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '关联订单ID',
+    `initiator_id` BIGINT UNSIGNED NOT NULL COMMENT '会话发起方用户ID',
+    `receiver_id` BIGINT UNSIGNED NOT NULL COMMENT '会话接收方用户ID',
+    `last_message_at` DATETIME DEFAULT NULL COMMENT '最后消息时间',
+    `last_message_content` VARCHAR(500) DEFAULT NULL COMMENT '最后消息内容',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_initiator_id` (`initiator_id`),
+    KEY `idx_receiver_id` (`receiver_id`),
+    KEY `idx_product_id` (`product_id`),
+    KEY `idx_order_id` (`order_id`),
+    KEY `idx_last_message_at` (`last_message_at`),
+    KEY `idx_conversation_type` (`conversation_type`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会话表';
+
+-- 2. 聊天消息表（记录每次通讯中具体的消息内容）
+CREATE TABLE IF NOT EXISTS `chat_message` (
+                                              `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '消息ID',
+                                              `conversation_id` BIGINT UNSIGNED NOT NULL COMMENT '会话ID',
+                                              `sender_id` BIGINT UNSIGNED NOT NULL COMMENT '发送者ID',
+                                              `message_type` ENUM('text', 'image', 'system', 'order_card', 'product_card') NOT NULL DEFAULT 'text' COMMENT '消息类型：text-文本, image-图片, system-系统消息, order_card-订单卡片, product_card-商品卡片',
+    `content` TEXT COMMENT '消息内容',
+    `ext_json` JSON DEFAULT NULL COMMENT '扩展信息（如商品卡片、订单卡片的JSON数据）',
+    `sent_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发送时间',
+    `recalled` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否撤回：0-未撤回, 1-已撤回',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_conversation_id` (`conversation_id`),
+    KEY `idx_sender_id` (`sender_id`),
+    KEY `idx_sent_at` (`sent_at`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天消息表';
+
+-- 3. 会话已读记录表
+CREATE TABLE IF NOT EXISTS `conversation_read_record` (
+                                                          `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+                                                          `conversation_id` BIGINT UNSIGNED NOT NULL COMMENT '会话ID',
+                                                          `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
+                                                          `last_read_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '最后阅读时间',
+                                                          `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                                          `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                                          PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_conversation_user` (`conversation_id`, `user_id`),
+    KEY `idx_user_id` (`user_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会话已读记录表';
+
+-- 4. 系统通知表（支持定向规则或全局系统通知）
+CREATE TABLE IF NOT EXISTS `system_notice` (
+                                               `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '通知ID',
+                                               `notice_type` ENUM('system', 'order', 'after_sale', 'promotion', 'forum') NOT NULL DEFAULT 'system' COMMENT '通知类型：system-系统, order-订单, after_sale-售后, promotion-促销, forum-论坛',
+    `title` VARCHAR(200) NOT NULL COMMENT '通知标题',
+    `content` VARCHAR(2000) NOT NULL COMMENT '通知内容',
+    `target_scope` ENUM('all', 'role', 'user') NOT NULL DEFAULT 'all' COMMENT '目标范围：all-全部, role-角色, user-指定用户',
+    `target_role_code` VARCHAR(30) DEFAULT NULL COMMENT '目标角色编码（当target_scope=role时使用）',
+    `target_user_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '目标用户ID（当target_scope=user时使用）',
+    `publish_status` ENUM('draft', 'published', 'revoked') NOT NULL DEFAULT 'draft' COMMENT '发布状态：draft-草稿, published-已发布, revoked-已撤回',
+    `published_at` DATETIME DEFAULT NULL COMMENT '发布时间',
+    `created_by` BIGINT UNSIGNED NOT NULL COMMENT '创建管理员ID',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_notice_type` (`notice_type`),
+    KEY `idx_target_scope` (`target_scope`),
+    KEY `idx_target_user_id` (`target_user_id`),
+    KEY `idx_publish_status` (`publish_status`),
+    KEY `idx_published_at` (`published_at`),
+    KEY `idx_created_by` (`created_by`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统通知表';
+
+-- 5. 个人通知收件箱表（个人通知中心信息的投递及已读）
+CREATE TABLE IF NOT EXISTS `user_notice_inbox` (
+                                                   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '收件箱记录ID',
+                                                   `notice_id` BIGINT UNSIGNED NOT NULL COMMENT '通知ID',
+                                                   `user_id` BIGINT UNSIGNED NOT NULL COMMENT '接收用户ID',
+                                                   `read_status` ENUM('unread', 'read') NOT NULL DEFAULT 'unread' COMMENT '读取状态：unread-未读, read-已读',
+    `delivered_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '投递时间',
+    `read_at` DATETIME DEFAULT NULL COMMENT '已读时间',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_notice_user` (`notice_id`, `user_id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_read_status` (`read_status`),
+    KEY `idx_delivered_at` (`delivered_at`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='个人通知收件箱表';
