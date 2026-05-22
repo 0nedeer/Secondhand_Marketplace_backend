@@ -20,7 +20,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/upload")
 @RequiredArgsConstructor
-public class FileUploadController {
+public class UserFileUploadController {
 
     private final FileUploadService fileUploadService;
 
