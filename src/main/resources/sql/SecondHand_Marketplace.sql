@@ -2141,3 +2141,483 @@ INSERT INTO `chat_message` (`conversation_id`, `sender_id`, `message_type`, `con
 (28, 900002, 'text', 'AirPods Pro 二代库存充足', '2026-05-23 14:30:00'),
 (28, 10002, 'text', '能开发票吗？', '2026-05-23 14:45:00'),
 (28, 900002, 'text', '可以的', '2026-05-23 15:00:00');
+
+--
+-- Additional demo data: products, favorites, cart, orders and after-sale samples
+-- This section only appends new rows and keeps the original seed data unchanged.
+--
+
+INSERT INTO `product` (`id`, `seller_id`, `category_id`, `title`, `subtitle`, `description`, `brand`, `model`, `condition_level`, `purchase_year`, `original_price`, `selling_price`, `can_bargain`, `trade_mode`, `pickup_city`, `pickup_address`, `location_lat`, `location_lng`, `stock`, `publish_status`, `view_count`, `favorite_count`, `published_at`, `off_shelf_at`, `reject_reason`, `created_at`, `updated_at`)
+SELECT
+  921000 + u.uidx * 100 + n.seq,
+  u.user_id,
+  910001 + MOD(u.uidx + n.seq, 10),
+  CONCAT(u.display_name, '的闲置', CASE n.seq
+    WHEN 0 THEN '手机支架'
+    WHEN 1 THEN '蓝牙键盘'
+    WHEN 2 THEN '帆布托特包'
+    WHEN 3 THEN '桌面收纳盒'
+    WHEN 4 THEN '机械键盘键帽'
+    WHEN 5 THEN '运动水杯'
+    WHEN 6 THEN '小夜灯'
+    WHEN 7 THEN '教材资料'
+    WHEN 8 THEN '无线充电器草稿'
+    ELSE '旅行背包草稿'
+  END),
+  CASE n.seq
+    WHEN 8 THEN '草稿示例，待补充图片和成色说明'
+    WHEN 9 THEN '草稿示例，卖家尚未提交审核'
+    ELSE '个人闲置，功能正常，适合日常使用'
+  END,
+  CONCAT('这是', u.display_name, '发布的扩充演示商品，主要用于商品列表、搜索筛选、卖家主页和交易流程测试。成色、价格、交易方式均为模拟数据。'),
+  CASE MOD(n.seq, 10)
+    WHEN 0 THEN 'Baseus'
+    WHEN 1 THEN 'Logitech'
+    WHEN 2 THEN 'MUJI'
+    WHEN 3 THEN 'IKEA'
+    WHEN 4 THEN 'Keychron'
+    WHEN 5 THEN 'Decathlon'
+    WHEN 6 THEN 'Philips'
+    WHEN 7 THEN 'People Education'
+    WHEN 8 THEN 'Anker'
+    ELSE 'Samsonite'
+  END,
+  CONCAT('DEMO-', u.uidx + 1, '-', n.seq + 1),
+  CASE MOD(n.seq, 5)
+    WHEN 0 THEN 'almost_new'
+    WHEN 1 THEN 'good'
+    WHEN 2 THEN 'fair'
+    WHEN 3 THEN 'good'
+    ELSE 'new'
+  END,
+  2021 + MOD(u.uidx + n.seq, 5),
+  99.00 + u.uidx * 12 + n.seq * 18,
+  29.00 + u.uidx * 5 + n.seq * 11,
+  IF(MOD(n.seq, 3) = 0, 0, 1),
+  CASE MOD(u.uidx + n.seq, 3)
+    WHEN 0 THEN 'pickup'
+    WHEN 1 THEN 'shipping'
+    ELSE 'both'
+  END,
+  CASE MOD(u.uidx, 8)
+    WHEN 0 THEN '上海'
+    WHEN 1 THEN '北京'
+    WHEN 2 THEN '深圳'
+    WHEN 3 THEN '成都'
+    WHEN 4 THEN '武汉'
+    WHEN 5 THEN '南京'
+    WHEN 6 THEN '广州'
+    ELSE '重庆'
+  END,
+  CONCAT(CASE MOD(u.uidx, 8)
+    WHEN 0 THEN '上海徐汇'
+    WHEN 1 THEN '北京海淀'
+    WHEN 2 THEN '深圳南山'
+    WHEN 3 THEN '成都锦江'
+    WHEN 4 THEN '武汉洪山'
+    WHEN 5 THEN '南京建邺'
+    WHEN 6 THEN '广州天河'
+    ELSE '重庆沙坪坝'
+  END, '演示自提点'),
+  22.5000000 + u.uidx * 0.1200000,
+  113.9000000 + u.uidx * 0.1800000,
+  CASE WHEN n.seq IN (4, 5, 8, 9) THEN 1 ELSE 2 END,
+  CASE n.seq
+    WHEN 7 THEN 'pending_review'
+    WHEN 8 THEN 'draft'
+    WHEN 9 THEN 'draft'
+    ELSE 'on_sale'
+  END,
+  20 + u.uidx * 7 + n.seq * 13,
+  MOD(u.uidx + n.seq, 6),
+  CASE WHEN n.seq IN (7, 8, 9) THEN NULL ELSE TIMESTAMP('2026-05-01 09:00:00') + INTERVAL u.uidx DAY + INTERVAL n.seq HOUR END,
+  NULL,
+  NULL,
+  TIMESTAMP('2026-05-01 08:00:00') + INTERVAL u.uidx DAY + INTERVAL n.seq HOUR,
+  TIMESTAMP('2026-05-01 08:30:00') + INTERVAL u.uidx DAY + INTERVAL n.seq HOUR
+FROM (
+  SELECT 0 uidx, 10001 user_id, '张三' display_name UNION ALL
+  SELECT 1, 10002, '李四' UNION ALL
+  SELECT 2, 10003, '王五' UNION ALL
+  SELECT 3, 10004, '赵六' UNION ALL
+  SELECT 4, 10005, '小明' UNION ALL
+  SELECT 5, 10006, '小红' UNION ALL
+  SELECT 6, 10007, '大刘' UNION ALL
+  SELECT 7, 10008, '小陈' UNION ALL
+  SELECT 8, 10009, '林慕青' UNION ALL
+  SELECT 9, 10010, '陈一帆' UNION ALL
+  SELECT 10, 10011, '苏小满' UNION ALL
+  SELECT 11, 10012, '周远' UNION ALL
+  SELECT 12, 10013, '何淼淼' UNION ALL
+  SELECT 13, 10014, '吴倩' UNION ALL
+  SELECT 14, 10015, '罗浩' UNION ALL
+  SELECT 15, 10016, '唐欣怡' UNION ALL
+  SELECT 16, 10017, '高瑞' UNION ALL
+  SELECT 17, 10018, '夏悦' UNION ALL
+  SELECT 18, 10019, '冯可' UNION ALL
+  SELECT 19, 10020, '乔楠' UNION ALL
+  SELECT 20, 900001, '海川数码' UNION ALL
+  SELECT 21, 900002, '京北闲置'
+) u
+CROSS JOIN (
+  SELECT 0 seq UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+  UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9
+) n;
+
+INSERT INTO `product_image` (`id`, `product_id`, `image_url`, `is_cover`, `sort_no`, `created_at`)
+SELECT
+  931000 + u.uidx * 100 + n.seq,
+  921000 + u.uidx * 100 + n.seq,
+  CONCAT('product/', u.user_id, '/demo_', 921000 + u.uidx * 100 + n.seq, '_cover.webp'),
+  1,
+  1,
+  TIMESTAMP('2026-05-01 08:35:00') + INTERVAL u.uidx DAY + INTERVAL n.seq HOUR
+FROM (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006 UNION ALL SELECT 6, 10007 UNION ALL SELECT 7, 10008 UNION ALL
+  SELECT 8, 10009 UNION ALL SELECT 9, 10010 UNION ALL SELECT 10, 10011 UNION ALL SELECT 11, 10012 UNION ALL
+  SELECT 12, 10013 UNION ALL SELECT 13, 10014 UNION ALL SELECT 14, 10015 UNION ALL SELECT 15, 10016 UNION ALL
+  SELECT 16, 10017 UNION ALL SELECT 17, 10018 UNION ALL SELECT 18, 10019 UNION ALL SELECT 19, 10020 UNION ALL
+  SELECT 20, 900001 UNION ALL SELECT 21, 900002
+) u
+CROSS JOIN (
+  SELECT 0 seq UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+  UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9
+) n;
+
+INSERT INTO `product_favorite` (`id`, `user_id`, `product_id`, `created_at`)
+SELECT
+  970000 + u.uidx * 10 + f.seq,
+  u.user_id,
+  921000 + MOD(u.uidx + f.seq + 1, 22) * 100 + MOD(f.seq * 2, 8),
+  TIMESTAMP('2026-05-20 10:00:00') + INTERVAL u.uidx HOUR + INTERVAL f.seq MINUTE
+FROM (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006 UNION ALL SELECT 6, 10007 UNION ALL SELECT 7, 10008 UNION ALL
+  SELECT 8, 10009 UNION ALL SELECT 9, 10010 UNION ALL SELECT 10, 10011 UNION ALL SELECT 11, 10012 UNION ALL
+  SELECT 12, 10013 UNION ALL SELECT 13, 10014 UNION ALL SELECT 14, 10015 UNION ALL SELECT 15, 10016 UNION ALL
+  SELECT 16, 10017 UNION ALL SELECT 17, 10018 UNION ALL SELECT 18, 10019 UNION ALL SELECT 19, 10020 UNION ALL
+  SELECT 20, 900001 UNION ALL SELECT 21, 900002
+) u
+CROSS JOIN (SELECT 0 seq UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) f;
+
+CREATE TABLE IF NOT EXISTS `shopping_cart` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '购物车ID',
+  `user_id` bigint unsigned NOT NULL COMMENT '用户ID',
+  `product_id` bigint unsigned NOT NULL COMMENT '商品ID',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '数量',
+  `selected` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否选中',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '加入时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_shopping_cart_user_product` (`user_id`,`product_id`),
+  KEY `idx_shopping_cart_product` (`product_id`),
+  CONSTRAINT `fk_shopping_cart_user` FOREIGN KEY (`user_id`) REFERENCES `user_account` (`id`),
+  CONSTRAINT `fk_shopping_cart_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`),
+  CONSTRAINT `chk_shopping_cart_quantity` CHECK ((`quantity` > 0))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='购物车表';
+
+INSERT INTO `shopping_cart` (`id`, `user_id`, `product_id`, `quantity`, `selected`, `created_at`, `updated_at`)
+SELECT
+  980000 + u.uidx * 10 + c.seq,
+  u.user_id,
+  921000 + MOD(u.uidx + c.seq + 3, 22) * 100 + c.seq,
+  IF(c.seq = 2, 2, 1),
+  IF(c.seq = 1, 0, 1),
+  TIMESTAMP('2026-05-21 09:00:00') + INTERVAL u.uidx HOUR + INTERVAL c.seq MINUTE,
+  TIMESTAMP('2026-05-21 09:05:00') + INTERVAL u.uidx HOUR + INTERVAL c.seq MINUTE
+FROM (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006 UNION ALL SELECT 6, 10007 UNION ALL SELECT 7, 10008 UNION ALL
+  SELECT 8, 10009 UNION ALL SELECT 9, 10010 UNION ALL SELECT 10, 10011 UNION ALL SELECT 11, 10012 UNION ALL
+  SELECT 12, 10013 UNION ALL SELECT 13, 10014 UNION ALL SELECT 14, 10015 UNION ALL SELECT 15, 10016 UNION ALL
+  SELECT 16, 10017 UNION ALL SELECT 17, 10018 UNION ALL SELECT 18, 10019 UNION ALL SELECT 19, 10020 UNION ALL
+  SELECT 20, 900001 UNION ALL SELECT 21, 900002
+) u
+CROSS JOIN (SELECT 0 seq UNION ALL SELECT 1 UNION ALL SELECT 2) c;
+
+INSERT INTO `trade_order` (`id`, `order_no`, `buyer_id`, `seller_id`, `order_status`, `trade_mode`, `product_amount`, `freight_amount`, `total_amount`, `buyer_message`, `receiver_name`, `receiver_phone`, `receiver_address`, `pickup_address`, `cancel_reason`, `paid_at`, `shipped_at`, `delivered_at`, `completed_at`, `cancelled_at`, `created_at`, `updated_at`)
+SELECT
+  941000 + b.uidx * 10 + o.seq,
+  CONCAT('ODDEMO202605', LPAD(b.uidx + 1, 2, '0'), LPAD(o.seq + 1, 2, '0')),
+  b.user_id,
+  s.user_id,
+  IF(o.seq = 0, 'completed', 'delivered'),
+  IF(o.seq = 0, 'shipping', 'pickup'),
+  p.selling_price,
+  IF(o.seq = 0, 8.00, 0.00),
+  p.selling_price + IF(o.seq = 0, 8.00, 0.00),
+  '扩充演示订单，请按约定交易',
+  b.display_name,
+  CONCAT('13988', LPAD(b.uidx + 1, 6, '0')),
+  CONCAT(b.display_name, '的演示收货地址'),
+  IF(o.seq = 1, p.pickup_address, NULL),
+  NULL,
+  TIMESTAMP('2026-05-24 10:10:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY,
+  TIMESTAMP('2026-05-24 13:00:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY,
+  TIMESTAMP('2026-05-25 16:00:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY,
+  IF(o.seq = 0, TIMESTAMP('2026-05-26 18:00:00') + INTERVAL b.uidx HOUR, NULL),
+  NULL,
+  TIMESTAMP('2026-05-24 10:00:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY,
+  TIMESTAMP('2026-05-26 18:00:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY
+FROM (
+  SELECT 0 uidx, 10001 user_id, '张三' display_name UNION ALL SELECT 1, 10002, '李四' UNION ALL SELECT 2, 10003, '王五' UNION ALL SELECT 3, 10004, '赵六' UNION ALL
+  SELECT 4, 10005, '小明' UNION ALL SELECT 5, 10006, '小红' UNION ALL SELECT 6, 10007, '大刘' UNION ALL SELECT 7, 10008, '小陈' UNION ALL
+  SELECT 8, 10009, '林慕青' UNION ALL SELECT 9, 10010, '陈一帆' UNION ALL SELECT 10, 10011, '苏小满' UNION ALL SELECT 11, 10012, '周远' UNION ALL
+  SELECT 12, 10013, '何淼淼' UNION ALL SELECT 13, 10014, '吴倩' UNION ALL SELECT 14, 10015, '罗浩' UNION ALL SELECT 15, 10016, '唐欣怡' UNION ALL
+  SELECT 16, 10017, '高瑞' UNION ALL SELECT 17, 10018, '夏悦' UNION ALL SELECT 18, 10019, '冯可' UNION ALL SELECT 19, 10020, '乔楠' UNION ALL
+  SELECT 20, 900001, '海川数码' UNION ALL SELECT 21, 900002, '京北闲置'
+) b
+CROSS JOIN (SELECT 0 seq UNION ALL SELECT 1) o
+JOIN (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006 UNION ALL SELECT 6, 10007 UNION ALL SELECT 7, 10008 UNION ALL
+  SELECT 8, 10009 UNION ALL SELECT 9, 10010 UNION ALL SELECT 10, 10011 UNION ALL SELECT 11, 10012 UNION ALL
+  SELECT 12, 10013 UNION ALL SELECT 13, 10014 UNION ALL SELECT 14, 10015 UNION ALL SELECT 15, 10016 UNION ALL
+  SELECT 16, 10017 UNION ALL SELECT 17, 10018 UNION ALL SELECT 18, 10019 UNION ALL SELECT 19, 10020 UNION ALL
+  SELECT 20, 900001 UNION ALL SELECT 21, 900002
+) s ON s.uidx = MOD(b.uidx + o.seq + 2, 22)
+JOIN `product` p ON p.id = 921000 + s.uidx * 100 + o.seq;
+
+INSERT INTO `order_item` (`id`, `order_id`, `product_id`, `product_title`, `product_image_url`, `unit_price`, `quantity`, `subtotal_amount`, `created_at`)
+SELECT
+  951000 + b.uidx * 10 + o.seq,
+  941000 + b.uidx * 10 + o.seq,
+  p.id,
+  p.title,
+  CONCAT('product/', s.user_id, '/demo_', p.id, '_cover.webp'),
+  p.selling_price,
+  1,
+  p.selling_price,
+  TIMESTAMP('2026-05-24 10:00:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY
+FROM (
+  SELECT 0 uidx UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL
+  SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL
+  SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL
+  SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20 UNION ALL SELECT 21
+) b
+CROSS JOIN (SELECT 0 seq UNION ALL SELECT 1) o
+JOIN (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006 UNION ALL SELECT 6, 10007 UNION ALL SELECT 7, 10008 UNION ALL
+  SELECT 8, 10009 UNION ALL SELECT 9, 10010 UNION ALL SELECT 10, 10011 UNION ALL SELECT 11, 10012 UNION ALL
+  SELECT 12, 10013 UNION ALL SELECT 13, 10014 UNION ALL SELECT 14, 10015 UNION ALL SELECT 15, 10016 UNION ALL
+  SELECT 16, 10017 UNION ALL SELECT 17, 10018 UNION ALL SELECT 18, 10019 UNION ALL SELECT 19, 10020 UNION ALL
+  SELECT 20, 900001 UNION ALL SELECT 21, 900002
+) s ON s.uidx = MOD(b.uidx + o.seq + 2, 22)
+JOIN `product` p ON p.id = 921000 + s.uidx * 100 + o.seq;
+
+INSERT INTO `payment_order` (`id`, `order_id`, `payment_no`, `payment_channel`, `payment_status`, `payable_amount`, `paid_amount`, `channel_trade_no`, `paid_at`, `failed_reason`, `created_at`, `updated_at`)
+SELECT
+  1000 + b.uidx * 10 + o.seq,
+  941000 + b.uidx * 10 + o.seq,
+  CONCAT('PODEMO202605', LPAD(b.uidx + 1, 2, '0'), LPAD(o.seq + 1, 2, '0')),
+  IF(MOD(b.uidx + o.seq, 2) = 0, 'alipay', 'wechat'),
+  'paid',
+  p.selling_price + IF(o.seq = 0, 8.00, 0.00),
+  p.selling_price + IF(o.seq = 0, 8.00, 0.00),
+  CONCAT('TRADE_DEMO_', b.uidx + 1, '_', o.seq + 1),
+  TIMESTAMP('2026-05-24 10:10:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY,
+  NULL,
+  TIMESTAMP('2026-05-24 10:05:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY,
+  TIMESTAMP('2026-05-24 10:10:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY
+FROM (
+  SELECT 0 uidx UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL
+  SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL
+  SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL
+  SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20 UNION ALL SELECT 21
+) b
+CROSS JOIN (SELECT 0 seq UNION ALL SELECT 1) o
+JOIN `product` p ON p.id = 921000 + MOD(b.uidx + o.seq + 2, 22) * 100 + o.seq;
+
+INSERT INTO `payment_transaction` (`id`, `payment_order_id`, `transaction_type`, `transaction_status`, `amount`, `channel_trade_no`, `channel_response`, `occurred_at`)
+SELECT
+  2000 + b.uidx * 20 + o.seq * 2 + t.step,
+  1000 + b.uidx * 10 + o.seq,
+  'pay',
+  IF(t.step = 0, 'processing', 'success'),
+  p.selling_price + IF(o.seq = 0, 8.00, 0.00),
+  CONCAT('TRADE_DEMO_', b.uidx + 1, '_', o.seq + 1, '_', t.step),
+  IF(t.step = 0, JSON_OBJECT('message', 'waiting callback'), JSON_OBJECT('message', 'callback paid')),
+  TIMESTAMP('2026-05-24 10:06:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY + INTERVAL t.step MINUTE
+FROM (
+  SELECT 0 uidx UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL
+  SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL
+  SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL
+  SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20 UNION ALL SELECT 21
+) b
+CROSS JOIN (SELECT 0 seq UNION ALL SELECT 1) o
+CROSS JOIN (SELECT 0 step UNION ALL SELECT 1) t
+JOIN `product` p ON p.id = 921000 + MOD(b.uidx + o.seq + 2, 22) * 100 + o.seq;
+
+INSERT INTO `order_shipment` (`id`, `order_id`, `shipment_type`, `logistics_company`, `tracking_no`, `shipment_status`, `shipped_by`, `shipped_at`, `signed_at`, `pickup_code`, `pickup_verified_at`, `created_at`, `updated_at`)
+SELECT
+  100 + b.uidx * 10 + o.seq,
+  941000 + b.uidx * 10 + o.seq,
+  IF(o.seq = 0, 'shipping', 'pickup'),
+  IF(o.seq = 0, '顺丰速运', NULL),
+  IF(o.seq = 0, CONCAT('SFDEMO', LPAD(b.uidx + 1, 4, '0'), LPAD(o.seq + 1, 2, '0')), NULL),
+  'signed',
+  s.user_id,
+  TIMESTAMP('2026-05-24 13:00:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY,
+  TIMESTAMP('2026-05-25 16:00:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY,
+  IF(o.seq = 1, LPAD(600000 + b.uidx * 10 + o.seq, 6, '0'), NULL),
+  IF(o.seq = 1, TIMESTAMP('2026-05-25 16:00:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY, NULL),
+  TIMESTAMP('2026-05-24 12:50:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY,
+  TIMESTAMP('2026-05-25 16:00:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY
+FROM (
+  SELECT 0 uidx UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL
+  SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL
+  SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL
+  SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20 UNION ALL SELECT 21
+) b
+CROSS JOIN (SELECT 0 seq UNION ALL SELECT 1) o
+JOIN (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006 UNION ALL SELECT 6, 10007 UNION ALL SELECT 7, 10008 UNION ALL
+  SELECT 8, 10009 UNION ALL SELECT 9, 10010 UNION ALL SELECT 10, 10011 UNION ALL SELECT 11, 10012 UNION ALL
+  SELECT 12, 10013 UNION ALL SELECT 13, 10014 UNION ALL SELECT 14, 10015 UNION ALL SELECT 15, 10016 UNION ALL
+  SELECT 16, 10017 UNION ALL SELECT 17, 10018 UNION ALL SELECT 18, 10019 UNION ALL SELECT 19, 10020 UNION ALL
+  SELECT 20, 900001 UNION ALL SELECT 21, 900002
+) s ON s.uidx = MOD(b.uidx + o.seq + 2, 22);
+
+INSERT INTO `order_status_log` (`id`, `order_id`, `from_status`, `to_status`, `changed_by`, `change_reason`, `changed_at`)
+SELECT
+  961000 + b.uidx * 20 + o.seq * 5 + st.step,
+  941000 + b.uidx * 10 + o.seq,
+  CASE st.step
+    WHEN 0 THEN NULL
+    WHEN 1 THEN 'pending_payment'
+    WHEN 2 THEN 'paid_pending_ship'
+    WHEN 3 THEN 'shipped'
+    ELSE 'delivered'
+  END,
+  CASE st.step
+    WHEN 0 THEN 'pending_payment'
+    WHEN 1 THEN 'paid_pending_ship'
+    WHEN 2 THEN 'shipped'
+    WHEN 3 THEN 'delivered'
+    ELSE 'completed'
+  END,
+  CASE WHEN st.step IN (0, 1, 3, 4) THEN b.user_id ELSE s.user_id END,
+  CASE st.step
+    WHEN 0 THEN '创建扩充演示订单'
+    WHEN 1 THEN '支付成功'
+    WHEN 2 THEN '卖家发货或创建自提记录'
+    WHEN 3 THEN '买家签收或自提核销'
+    ELSE '买家确认收货'
+  END,
+  TIMESTAMP('2026-05-24 10:00:00') + INTERVAL b.uidx HOUR + INTERVAL o.seq DAY + INTERVAL st.step HOUR
+FROM (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006 UNION ALL SELECT 6, 10007 UNION ALL SELECT 7, 10008 UNION ALL
+  SELECT 8, 10009 UNION ALL SELECT 9, 10010 UNION ALL SELECT 10, 10011 UNION ALL SELECT 11, 10012 UNION ALL
+  SELECT 12, 10013 UNION ALL SELECT 13, 10014 UNION ALL SELECT 14, 10015 UNION ALL SELECT 15, 10016 UNION ALL
+  SELECT 16, 10017 UNION ALL SELECT 17, 10018 UNION ALL SELECT 18, 10019 UNION ALL SELECT 19, 10020 UNION ALL
+  SELECT 20, 900001 UNION ALL SELECT 21, 900002
+) b
+CROSS JOIN (SELECT 0 seq UNION ALL SELECT 1) o
+CROSS JOIN (SELECT 0 step UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) st
+JOIN (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006 UNION ALL SELECT 6, 10007 UNION ALL SELECT 7, 10008 UNION ALL
+  SELECT 8, 10009 UNION ALL SELECT 9, 10010 UNION ALL SELECT 10, 10011 UNION ALL SELECT 11, 10012 UNION ALL
+  SELECT 12, 10013 UNION ALL SELECT 13, 10014 UNION ALL SELECT 14, 10015 UNION ALL SELECT 15, 10016 UNION ALL
+  SELECT 16, 10017 UNION ALL SELECT 17, 10018 UNION ALL SELECT 18, 10019 UNION ALL SELECT 19, 10020 UNION ALL
+  SELECT 20, 900001 UNION ALL SELECT 21, 900002
+) s ON s.uidx = MOD(b.uidx + o.seq + 2, 22)
+WHERE o.seq = 0 OR st.step < 4;
+
+INSERT INTO `review` (`id`, `order_id`, `order_item_id`, `product_id`, `buyer_id`, `seller_id`, `rating`, `content`, `is_anonymous`, `has_sensitive_content`, `seller_reply`, `seller_reply_at`, `created_at`)
+SELECT
+  1000 + b.uidx,
+  941000 + b.uidx * 10,
+  951000 + b.uidx * 10,
+  p.id,
+  b.user_id,
+  s.user_id,
+  4 + MOD(b.uidx, 2),
+  '扩充演示评价：发货及时，商品与描述一致。',
+  IF(MOD(b.uidx, 5) = 0, 1, 0),
+  0,
+  '感谢评价，欢迎下次交易。',
+  TIMESTAMP('2026-05-27 10:00:00') + INTERVAL b.uidx HOUR,
+  TIMESTAMP('2026-05-27 09:30:00') + INTERVAL b.uidx HOUR
+FROM (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006 UNION ALL SELECT 6, 10007 UNION ALL SELECT 7, 10008 UNION ALL
+  SELECT 8, 10009 UNION ALL SELECT 9, 10010 UNION ALL SELECT 10, 10011 UNION ALL SELECT 11, 10012 UNION ALL
+  SELECT 12, 10013 UNION ALL SELECT 13, 10014 UNION ALL SELECT 14, 10015 UNION ALL SELECT 15, 10016 UNION ALL
+  SELECT 16, 10017 UNION ALL SELECT 17, 10018 UNION ALL SELECT 18, 10019 UNION ALL SELECT 19, 10020 UNION ALL
+  SELECT 20, 900001 UNION ALL SELECT 21, 900002
+) b
+JOIN (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006 UNION ALL SELECT 6, 10007 UNION ALL SELECT 7, 10008 UNION ALL
+  SELECT 8, 10009 UNION ALL SELECT 9, 10010 UNION ALL SELECT 10, 10011 UNION ALL SELECT 11, 10012 UNION ALL
+  SELECT 12, 10013 UNION ALL SELECT 13, 10014 UNION ALL SELECT 14, 10015 UNION ALL SELECT 15, 10016 UNION ALL
+  SELECT 16, 10017 UNION ALL SELECT 17, 10018 UNION ALL SELECT 18, 10019 UNION ALL SELECT 19, 10020 UNION ALL
+  SELECT 20, 900001 UNION ALL SELECT 21, 900002
+) s ON s.uidx = MOD(b.uidx + 2, 22)
+JOIN `product` p ON p.id = 921000 + s.uidx * 100;
+
+INSERT INTO `after_sale_request` (`id`, `after_sale_no`, `order_id`, `order_item_id`, `buyer_id`, `seller_id`, `request_type`, `request_reason`, `detail_desc`, `requested_amount`, `final_amount`, `request_status`, `seller_response`, `seller_responded_at`, `admin_id`, `admin_decision`, `closed_at`, `created_at`, `updated_at`)
+SELECT
+  1000 + a.seq,
+  CONCAT('ASDEMO202605', LPAD(a.seq + 1, 4, '0')),
+  941000 + a.seq * 10,
+  951000 + a.seq * 10,
+  b.user_id,
+  s.user_id,
+  CASE MOD(a.seq, 4)
+    WHEN 0 THEN 'return_refund'
+    WHEN 1 THEN 'refund_only'
+    WHEN 2 THEN 'exchange'
+    ELSE 'complaint'
+  END,
+  CASE MOD(a.seq, 4)
+    WHEN 0 THEN '尺寸不合适'
+    WHEN 1 THEN '轻微瑕疵'
+    WHEN 2 THEN '希望更换同款'
+    ELSE '物流沟通争议'
+  END,
+  '扩充演示售后申请，用于测试退货、退款、换货和投诉流程。',
+  20.00 + a.seq * 15,
+  CASE WHEN a.seq IN (1, 4) THEN 20.00 + a.seq * 15 ELSE NULL END,
+  CASE MOD(a.seq, 4)
+    WHEN 0 THEN 'pending_seller'
+    WHEN 1 THEN 'approved'
+    WHEN 2 THEN 'rejected'
+    ELSE 'cancelled'
+  END,
+  CASE WHEN a.seq IN (1, 2) THEN '已收到申请，按平台规则处理。' ELSE NULL END,
+  CASE WHEN a.seq IN (1, 2) THEN TIMESTAMP('2026-05-28 12:00:00') + INTERVAL a.seq HOUR ELSE NULL END,
+  CASE WHEN a.seq IN (1, 2, 4) THEN 900003 ELSE NULL END,
+  CASE WHEN a.seq = 2 THEN '商品描述清晰，暂不支持换货。' WHEN a.seq = 4 THEN '证据充分，同意退款。' WHEN MOD(a.seq, 4) = 3 THEN '双方协商后取消申请' ELSE NULL END,
+  CASE WHEN MOD(a.seq, 4) IN (1, 2, 3) THEN TIMESTAMP('2026-05-28 16:00:00') + INTERVAL a.seq HOUR ELSE NULL END,
+  TIMESTAMP('2026-05-28 09:00:00') + INTERVAL a.seq HOUR,
+  TIMESTAMP('2026-05-28 10:00:00') + INTERVAL a.seq HOUR
+FROM (SELECT 0 seq UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) a
+JOIN (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006
+) b ON b.uidx = a.seq
+JOIN (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006 UNION ALL SELECT 6, 10007 UNION ALL SELECT 7, 10008
+) s ON s.uidx = a.seq + 2;
+
+INSERT INTO `after_sale_evidence` (`id`, `after_sale_id`, `evidence_type`, `content_url`, `content_text`, `uploaded_by`, `created_at`)
+SELECT
+  1000 + a.seq,
+  1000 + a.seq,
+  IF(MOD(a.seq, 2) = 0, 'image', 'text'),
+  CONCAT('/uploads/after_sales/demo_as_', 1000 + a.seq, '.jpg'),
+  '扩充演示售后凭证',
+  b.user_id,
+  TIMESTAMP('2026-05-28 09:30:00') + INTERVAL a.seq HOUR
+FROM (SELECT 0 seq UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) a
+JOIN (
+  SELECT 0 uidx, 10001 user_id UNION ALL SELECT 1, 10002 UNION ALL SELECT 2, 10003 UNION ALL SELECT 3, 10004 UNION ALL
+  SELECT 4, 10005 UNION ALL SELECT 5, 10006
+) b ON b.uidx = a.seq;
