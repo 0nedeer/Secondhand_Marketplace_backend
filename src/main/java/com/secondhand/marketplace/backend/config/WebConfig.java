@@ -30,6 +30,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/user/sms/send-code",
                         "/api/user/forgot-password",
                         "/api/user/reset-password",
+                        "/api/user/profile/*",
                         "/api/payments/callback"
                         // 商品、论坛等模块的公开接口后续再加
                 );

@@ -67,7 +67,9 @@ public class ProductCreateDTO {
 
     @Schema(description = "是否存为草稿（true为草稿，false直接提交审核）", defaultValue = "false")
     private Boolean isDraft = false;
-    
+
+    @Schema(description = "是否可议价", defaultValue = "true")
+    private Boolean canBargain = true;
     @Schema(description = "商品图片列表")
     private List<ProductImageDTO> images;
 }

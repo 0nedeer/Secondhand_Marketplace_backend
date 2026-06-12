@@ -37,4 +37,7 @@ public class ProductPageQueryDTO {
 
     @Schema(description = "最高售价")
     private BigDecimal maxPrice;
+
+    @Schema(description = "价格排序：asc=升序, desc=降序, 不传=按创建时间倒序")
+    private String sortOrder;
 }

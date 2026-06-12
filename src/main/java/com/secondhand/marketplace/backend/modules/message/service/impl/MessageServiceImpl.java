@@ -100,11 +100,18 @@ public class MessageServiceImpl implements MessageService {
 
                 String coverImageUrl = productImage != null ? productImage.getImageUrl() : "";
 
-                // 构建 extJson
+                // 构建 extJson（价格保留原始精度）
+                String sellingPrice = product.getSellingPrice() != null
+                        ? product.getSellingPrice().setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+                        : "0.00";
+                String originalPrice = product.getOriginalPrice() != null
+                        ? product.getOriginalPrice().setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+                        : "0.00";
                 extJson = String.format(
-                        "{\"productId\":%d,\"price\":%d,\"imageUrl\":\"%s\"}",
+                        "{\"productId\":%d,\"price\":%s,\"originalPrice\":%s,\"imageUrl\":\"%s\"}",
                         product.getId(),
-                        product.getSellingPrice() != null ? product.getSellingPrice().intValue() : 0,
+                        sellingPrice,
+                        originalPrice,
                         coverImageUrl
                 );
 
@@ -312,18 +319,29 @@ public class MessageServiceImpl implements MessageService {
     @Override
     @Transactional
     public ConversationVO createConversation(Long currentUserId, CreateConversationDTO dto) {
-        // 验证对方用户是否存在
+        // 1. 基础校验
         UserAccount otherUser = userAccountMapper.selectById(dto.getUserId());
         if (otherUser == null) {
             throw new BusinessException("对方用户不存在");
         }
 
-        // 不能和自己创建会话
         if (currentUserId.equals(dto.getUserId())) {
             throw new BusinessException("不能与自己创建会话");
         }
 
-        // ========== 商品咨询场景：校验商品 ==========
+        // 2. 先查是否已有会话（两步匹配：精确 → 宽松），有则直接返回
+        Conversation existing = conversationMapper.findExistingConversation(
+                dto.getConversationType(), currentUserId, dto.getUserId(),
+                dto.getProductId(), dto.getOrderId());
+        if (existing == null) {
+            existing = conversationMapper.findConversationByUserPair(
+                    dto.getConversationType(), currentUserId, dto.getUserId());
+        }
+        if (existing != null) {
+            return buildConversationVO(existing, currentUserId);
+        }
+
+        // 3. 不存在则校验业务参数，创建新会话
         if ("product_consult".equals(dto.getConversationType())) {
             if (dto.getProductId() == null) {
                 throw new BusinessException("商品咨询场景需要提供商品ID");
@@ -334,52 +352,32 @@ public class MessageServiceImpl implements MessageService {
             }
         }
 
-        // ========== 订单售后场景：校验订单 ==========
         if ("order_service".equals(dto.getConversationType())) {
             if (dto.getOrderId() == null) {
                 throw new BusinessException("订单售后场景需要提供订单ID");
             }
 
-            // 查询订单是否存在
             TradeOrder order = tradeOrderMapper.selectById(dto.getOrderId());
             if (order == null) {
                 throw new BusinessException("订单不存在");
             }
 
-            // 验证当前用户是否与该订单相关（是买家或卖家）
             if (!order.getBuyerId().equals(currentUserId) && !order.getSellerId().equals(currentUserId)) {
                 throw new BusinessException("您与该订单无关，无法创建售后会话");
             }
 
-            // 验证订单状态是否允许发起售后
             String status = order.getOrderStatus();
-            // 可售后状态：paid_pending_ship、shipped、delivered、completed
             if (!"paid_pending_ship".equals(status) && !"shipped".equals(status)
                     && !"delivered".equals(status) && !"completed".equals(status)) {
                 throw new BusinessException("当前订单状态不支持发起售后，订单状态：" + status);
             }
 
-            // 可选：验证对方用户ID是否匹配（卖家就是订单的sellerId）
             if (!dto.getUserId().equals(order.getSellerId())) {
                 throw new BusinessException("对方用户不是该订单的卖家");
             }
         }
 
-        // 检查是否已存在相同场景的会话
-        Conversation existing = conversationMapper.findExistingConversation(
-                dto.getConversationType(),
-                currentUserId,
-                dto.getUserId(),
-                dto.getProductId(),
-                dto.getOrderId()
-        );
-
-        if (existing != null) {
-            // 返回已有会话
-            return buildConversationVO(existing, currentUserId);
-        }
-
-        // 创建新会话
+        // 4. 创建新会话
         Conversation conversation = new Conversation();
         conversation.setConversationType(dto.getConversationType());
         conversation.setProductId(dto.getProductId());
