@@ -9,6 +9,8 @@ import com.secondhand.marketplace.backend.common.util.PasswordUtil;
 import com.secondhand.marketplace.backend.modules.user.dto.*;
 import com.secondhand.marketplace.backend.modules.user.entity.*;
 import com.secondhand.marketplace.backend.modules.user.mapper.*;
+import com.secondhand.marketplace.backend.modules.product.entity.Product;
+import com.secondhand.marketplace.backend.modules.product.mapper.ProductMapper;
 import com.secondhand.marketplace.backend.modules.user.service.UserService;
 import com.secondhand.marketplace.backend.modules.user.vo.*;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ public class UserServiceImpl implements UserService {
     private final JwtUtil jwtUtil;
     private final PasswordUtil passwordUtil;
     private final SellerReputationSnapshotMapper sellerReputationSnapshotMapper;
+    private final ProductMapper productMapper;
     //用于验证码模拟
     private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
 
@@ -491,6 +494,12 @@ public class UserServiceImpl implements UserService {
         favorite.setUserId(userId);
         favorite.setProductId(productId);
         productFavoriteMapper.insert(favorite);
+
+        // 同步更新商品收藏数
+        LambdaUpdateWrapper<Product> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Product::getId, productId)
+                .setSql("favorite_count = favorite_count + 1");
+        productMapper.update(null, updateWrapper);
     }
 
     @Override
@@ -499,6 +508,12 @@ public class UserServiceImpl implements UserService {
         wrapper.eq(ProductFavorite::getUserId, userId)
                 .eq(ProductFavorite::getProductId, productId);
         productFavoriteMapper.delete(wrapper);
+
+        // 同步更新商品收藏数
+        LambdaUpdateWrapper<Product> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Product::getId, productId)
+                .setSql("favorite_count = GREATEST(favorite_count - 1, 0)");
+        productMapper.update(null, updateWrapper);
     }
 
     @Override

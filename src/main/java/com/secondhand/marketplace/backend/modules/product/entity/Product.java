@@ -10,6 +10,16 @@ import java.time.LocalDateTime;
 @Data
 @TableName("product")
 public class Product {
+
+    // 业务状态常量
+    public static final String STATUS_ON_SALE = "on_sale";
+    public static final String STATUS_DRAFT = "draft";
+    public static final String STATUS_PENDING_REVIEW = "pending_review";
+    public static final String STATUS_OFF_SHELF = "off_shelf";
+    public static final String STATUS_REJECT = "rejected";
+    public static final String STATUS_SOLD = "sold";
+    public static final String STATUS_DELETED = "deleted";
+
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long sellerId;

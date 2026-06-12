@@ -1,6 +1,7 @@
 package com.secondhand.marketplace.backend.modules.product.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.secondhand.marketplace.backend.common.exception.BusinessException;
@@ -36,14 +37,10 @@ import java.util.stream.Collectors;
 @Service
 public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements ProductService {
 
-    private static final String STATUS_ON_SALE = "on_sale";
-    private static final String STATUS_DRAFT = "draft";
-    private static final String STATUS_PENDING_REVIEW = "pending_review";
-    private static final String STATUS_OFF_SHELF = "off_shelf";
-    private static final String STATUS_REJECT = "rejected";
-    private static final String STATUS_SOLD = "sold";
+    private static final Set<String> PUBLIC_QUERYABLE_STATUSES = Set.of(Product.STATUS_ON_SALE, Product.STATUS_SOLD);
 
-    private static final Set<String> PUBLIC_QUERYABLE_STATUSES = Set.of(STATUS_ON_SALE, STATUS_SOLD);
+    private static final String SORT_ASC = "asc";
+    private static final String SORT_DESC = "desc";
 
     @Autowired
     private ProductImageService productImageService;
@@ -57,12 +54,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     public boolean addViewCount(Long id) {
         Product p = this.getById(id);
-        if (p == null) {
+        if (p == null || Product.STATUS_DELETED.equals(p.getPublishStatus())) {
             return false;
         }
-        p.setViewCount((p.getViewCount() == null ? 0 : p.getViewCount()) + 1);  
-        this.updateById(p);
-        return true;
+        // 原子更新，避免并发竞态
+        LambdaUpdateWrapper<Product> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Product::getId, id)
+                .setSql("view_count = view_count + 1");
+        return this.update(updateWrapper);
     }
 
     @Override
@@ -81,9 +80,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         
         // 状态机处理
         if (Boolean.TRUE.equals(dto.getIsDraft())) {
-            product.setPublishStatus(STATUS_DRAFT);
+            product.setPublishStatus(Product.STATUS_DRAFT);
         } else {
-            product.setPublishStatus(STATUS_PENDING_REVIEW);
+            product.setPublishStatus(Product.STATUS_PENDING_REVIEW);
         }
         product.setViewCount(0);
         product.setFavoriteCount(0);
@@ -99,7 +98,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Transactional(rollbackFor = Exception.class)
     public ProductVO updateProduct(ProductUpdateDTO dto, Long sellerId) {
         Product existing = this.getById(dto.getId());
-        if (existing == null) {
+        if (existing == null || Product.STATUS_DELETED.equals(existing.getPublishStatus())) {
             return null;
         }
 
@@ -107,7 +106,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             if (!existing.getSellerId().equals(sellerId)) {
                 throw new BusinessException(403, "无权修改他人的商品");
             }
-            if (STATUS_ON_SALE.equals(existing.getPublishStatus()) || STATUS_SOLD.equals(existing.getPublishStatus())) {
+            if (Product.STATUS_ON_SALE.equals(existing.getPublishStatus()) || Product.STATUS_SOLD.equals(existing.getPublishStatus())) {
                 throw new BusinessException(400, "当前状态不允许修改");
             }
         }
@@ -120,10 +119,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         existing.setUpdatedAt(LocalDateTime.now());
 
         if (Boolean.TRUE.equals(dto.getIsDraft())) {
-            existing.setPublishStatus(STATUS_DRAFT);
+            existing.setPublishStatus(Product.STATUS_DRAFT);
             // 管理员无条件放过
         } else if (!isAdmin(sellerId)) {
-            existing.setPublishStatus(STATUS_PENDING_REVIEW);
+            existing.setPublishStatus(Product.STATUS_PENDING_REVIEW);
         }
         
         this.updateById(existing);
@@ -134,30 +133,55 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean deleteProduct(Long id, Long sellerId) {
+    public void offShelfProduct(Long id, Long sellerId) {
         Product existing = this.getById(id);
         if (existing == null) {
-            return false;
+            throw new BusinessException(404, "商品不存在");
         }
 
-        if (existing.getSellerId().equals(sellerId)) {
-            // 假设任意时刻都能够下架
-            // fall through
-        } else if (!isAdmin(sellerId)) {
+        if (!existing.getSellerId().equals(sellerId) && !isAdmin(sellerId)) {
             throw new BusinessException(403, "无权下架他人商品");
         }
 
-        // 状态机流转为下架
-        existing.setPublishStatus(STATUS_OFF_SHELF);
+        if (Product.STATUS_DELETED.equals(existing.getPublishStatus())) {
+            throw new BusinessException(400, "该商品已被删除");
+        }
+
+        if (!Product.STATUS_ON_SALE.equals(existing.getPublishStatus()) && !Product.STATUS_SOLD.equals(existing.getPublishStatus())) {
+            throw new BusinessException(400, "仅上架中或已售的商品可以下架");
+        }
+
+        existing.setPublishStatus(Product.STATUS_OFF_SHELF);
         existing.setOffShelfAt(LocalDateTime.now());
         this.updateById(existing);
-        return true;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteProduct(Long id, Long sellerId) {
+        Product existing = this.getById(id);
+        if (existing == null) {
+            throw new BusinessException(404, "商品不存在");
+        }
+
+        // 只有卖家自己或管理员可删除
+        if (!existing.getSellerId().equals(sellerId) && !isAdmin(sellerId)) {
+            throw new BusinessException(403, "无权删除他人商品");
+        }
+
+        // 已删除的不能重复删除
+        if (Product.STATUS_DELETED.equals(existing.getPublishStatus())) {
+            throw new BusinessException(400, "该商品已被删除");
+        }
+
+        existing.setPublishStatus(Product.STATUS_DELETED);
+        this.updateById(existing);
     }
 
     @Override
     public ProductVO getProductDetail(Long id) {
         Product p = this.getById(id);
-        if (p == null) {
+        if (p == null || Product.STATUS_DELETED.equals(p.getPublishStatus())) {
             return null;
         }
         
@@ -178,6 +202,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     public PageResult<ProductVO> getProductPage(ProductPageQueryDTO queryDTO, Long currentUserId) {
         LambdaQueryWrapper<Product> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 已删除商品对所有用户不可见
+        queryWrapper.ne(Product::getPublishStatus, Product.STATUS_DELETED);
+
         if (queryDTO.getCategoryId() != null) {
             queryWrapper.eq(Product::getCategoryId, queryDTO.getCategoryId());
         }
@@ -228,8 +256,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (queryDTO.getMaxPrice() != null) {
             queryWrapper.le(Product::getSellingPrice, queryDTO.getMaxPrice());
         }
-        
-        queryWrapper.orderByDesc(Product::getCreatedAt);
+
+        applySortOrder(queryWrapper, queryDTO.getSortOrder());
 
         Page<Product> page = new Page<>(queryDTO.getCurrent(), queryDTO.getSize());
         this.page(page, queryWrapper);
@@ -245,21 +273,29 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             throw new BusinessException(403, "无权审核商品");
         }
         Product product = this.getById(productId);
-        if (product == null) {
+        if (product == null || Product.STATUS_DELETED.equals(product.getPublishStatus())) {
             return false;
         }
 
-        // 可以将 草稿 或 待审核 状态直接变更为 上架 或 驳回
+        // 只能审核 草稿 或 待审核 状态的商品
+        if (!Product.STATUS_DRAFT.equals(product.getPublishStatus()) && !Product.STATUS_PENDING_REVIEW.equals(product.getPublishStatus())) {
+            throw new BusinessException(400, "仅草稿或待审核状态的商品可审核");
+        }
+
         if (Boolean.TRUE.equals(approved)) {
-            product.setPublishStatus(STATUS_ON_SALE);
+            product.setPublishStatus(Product.STATUS_ON_SALE);
             product.setRejectReason(null);
+            // 首次上架记录发布时间
+            if (product.getPublishedAt() == null) {
+                product.setPublishedAt(LocalDateTime.now());
+            }
             product.setUpdatedAt(LocalDateTime.now());
         } else {
-            product.setPublishStatus(STATUS_REJECT);
+            product.setPublishStatus(Product.STATUS_REJECT);
             product.setRejectReason(rejectReason);
             product.setUpdatedAt(LocalDateTime.now());
         }
-        
+
         return this.updateById(product);
     }
 
@@ -267,9 +303,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Transactional(rollbackFor = Exception.class)
     public boolean submitForReview(Long id, Long sellerId) {
         Product product = this.getById(id);
-        if (product == null || (!product.getSellerId().equals(sellerId) && !isAdmin(sellerId))) return false;
-        if (STATUS_DRAFT.equals(product.getPublishStatus()) || STATUS_REJECT.equals(product.getPublishStatus())) {
-            product.setPublishStatus(STATUS_PENDING_REVIEW);
+        if (product == null || Product.STATUS_DELETED.equals(product.getPublishStatus()) || (!product.getSellerId().equals(sellerId) && !isAdmin(sellerId))) return false;
+        if (Product.STATUS_DRAFT.equals(product.getPublishStatus()) || Product.STATUS_REJECT.equals(product.getPublishStatus())) {
+            product.setPublishStatus(Product.STATUS_PENDING_REVIEW);
             product.setUpdatedAt(LocalDateTime.now());
             return this.updateById(product);
         }
@@ -280,35 +316,22 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Transactional(rollbackFor = Exception.class)
     public boolean revokeReview(Long id, Long sellerId) {
         Product product = this.getById(id);
-        if (product == null || (!product.getSellerId().equals(sellerId) && !isAdmin(sellerId))) return false;
-        if (STATUS_PENDING_REVIEW.equals(product.getPublishStatus())) {
-            product.setPublishStatus(STATUS_DRAFT);
+        if (product == null || Product.STATUS_DELETED.equals(product.getPublishStatus()) || (!product.getSellerId().equals(sellerId) && !isAdmin(sellerId))) return false;
+        if (Product.STATUS_PENDING_REVIEW.equals(product.getPublishStatus())) {
+            product.setPublishStatus(Product.STATUS_DRAFT);
             product.setUpdatedAt(LocalDateTime.now());
             return this.updateById(product);
         }
         throw new BusinessException(400, "仅待审核状态可撤销");
     }
 
-//    @Override
-//    @Transactional(rollbackFor = Exception.class)
-//    public boolean takeOffShelf(Long id, Long sellerId) {
-//        Product product = this.getById(id);
-//        if (product == null || !product.getSellerId().equals(sellerId)) return false;
-//        if (STATUS_ON_SALE.equals(product.getPublishStatus())) {
-//            product.setPublishStatus(STATUS_OFF_SHELF);
-//            product.setUpdatedAt(LocalDateTime.now());
-//            return this.updateById(product);
-//        }
-//        throw new BusinessException(400, "仅上架状态可下架");
-//    }
-
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean relistProduct(Long id, Long sellerId) {
         Product product = this.getById(id);
-        if (product == null || (!product.getSellerId().equals(sellerId) && !isAdmin(sellerId))) return false;
-        if (STATUS_OFF_SHELF.equals(product.getPublishStatus())) {
-            product.setPublishStatus(STATUS_PENDING_REVIEW);
+        if (product == null || Product.STATUS_DELETED.equals(product.getPublishStatus()) || (!product.getSellerId().equals(sellerId) && !isAdmin(sellerId))) return false;
+        if (Product.STATUS_OFF_SHELF.equals(product.getPublishStatus())) {
+            product.setPublishStatus(Product.STATUS_PENDING_REVIEW);
             product.setUpdatedAt(LocalDateTime.now());
             return this.updateById(product);
         }
@@ -320,6 +343,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         LambdaQueryWrapper<Product> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Product::getSellerId, currentUserId);
 
+        // 已删除商品不可见
+        queryWrapper.ne(Product::getPublishStatus, Product.STATUS_DELETED);
+
         // 如果传了具体的状态筛选，如 'draft', 则过滤；否则查出该用户所有状态的商品
         if (StringUtils.hasText(queryDTO.getPublishStatus())) {
             queryWrapper.eq(Product::getPublishStatus, queryDTO.getPublishStatus().trim());
@@ -329,8 +355,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             queryWrapper.and(wrapper -> wrapper.like(Product::getTitle, queryDTO.getKeyword())
                     .or().like(Product::getDescription, queryDTO.getKeyword()));
         }
-        
-        queryWrapper.orderByDesc(Product::getCreatedAt);
+
+        applySortOrder(queryWrapper, queryDTO.getSortOrder());
 
         Page<Product> page = new Page<>(queryDTO.getCurrent(), queryDTO.getSize());
         this.page(page, queryWrapper);
@@ -347,11 +373,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         LambdaQueryWrapper<Product> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Product::getSellerId, sellerId);
 
+        // 已删除商品不可见
+        queryWrapper.ne(Product::getPublishStatus, Product.STATUS_DELETED);
+
         String requestedStatus = queryDTO.getPublishStatus();
         if (StringUtils.hasText(requestedStatus)) {
             requestedStatus = requestedStatus.trim();
         }
-        
+
         if (!isAdmin(UserContext.getCurrentUserId())) {
             if (!StringUtils.hasText(requestedStatus)) {
                 queryWrapper.in(Product::getPublishStatus, PUBLIC_QUERYABLE_STATUSES);
@@ -395,7 +424,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             queryWrapper.le(Product::getSellingPrice, queryDTO.getMaxPrice());
         }
 
-        queryWrapper.orderByDesc(Product::getCreatedAt);
+        applySortOrder(queryWrapper, queryDTO.getSortOrder());
 
         Page<Product> page = new Page<>(queryDTO.getCurrent(), queryDTO.getSize());
         this.page(page, queryWrapper);
@@ -403,7 +432,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         List<ProductVO> vos = page.getRecords().stream()
                 .map(this::convertToVO)
                 .collect(Collectors.toList());
-        
+
         return new PageResult<>(page.getTotal(), vos);
     }
 
@@ -413,6 +442,22 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
         UserAccount user = userAccountMapper.selectById(userId);
         return user != null && Integer.valueOf(1).equals(user.getIsAdmin());
+    }
+
+    /**
+     * 根据 sortOrder 决定排序方式
+     * @param wrapper    query wrapper
+     * @param sortOrder  排序方式: "asc"=售价升序, "desc"=售价降序, null/其他=按创建时间倒序
+     */
+    private void applySortOrder(LambdaQueryWrapper<Product> wrapper, String sortOrder) {
+        if (SORT_ASC.equalsIgnoreCase(sortOrder)) {
+            wrapper.orderByAsc(Product::getSellingPrice);
+        } else if (SORT_DESC.equalsIgnoreCase(sortOrder)) {
+            wrapper.orderByDesc(Product::getSellingPrice);
+        } else {
+            // 默认：按创建时间倒序
+            wrapper.orderByDesc(Product::getCreatedAt);
+        }
     }
 
     private void saveImagesForProduct(Long productId, List<ProductImageDTO> images) {
