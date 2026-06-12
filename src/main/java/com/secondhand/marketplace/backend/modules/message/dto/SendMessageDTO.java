@@ -1,14 +1,17 @@
 package com.secondhand.marketplace.backend.modules.message.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class SendMessageDTO {
 
-    @NotNull(message = "会话ID不能为空")
+    @Schema(description = "会话ID（可选）。传了就走已有会话；不传则自动查已有会话或新建")
     private Long conversationId;
+
+    @Schema(description = "对方用户ID。conversationId 未传时必填，用于查找或创建会话")
+    private Long receiverId;
 
     private Long productId;
 

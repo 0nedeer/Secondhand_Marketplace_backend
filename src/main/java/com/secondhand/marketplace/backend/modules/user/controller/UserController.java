@@ -124,6 +124,12 @@ public class UserController {
         return CommonResult.success(userService.getUserProfile(userId));
     }
 
+    //("获取指定用户的公开信息")
+    @GetMapping("/profile/{userId}")
+    public CommonResult<UserProfileVO> getUserProfileById(@PathVariable Long userId) {
+        return CommonResult.success(userService.getUserProfile(userId));
+    }
+
     //("更新用户个人信息")
     @PutMapping("/profile")
     public CommonResult<Void> updateUserProfile(@RequestBody UpdateProfileDTO updateProfileDTO) {

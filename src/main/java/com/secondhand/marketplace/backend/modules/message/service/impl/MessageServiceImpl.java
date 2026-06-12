@@ -51,18 +51,29 @@ public class MessageServiceImpl implements MessageService {
     @Override
     @Transactional
     public ChatMessageVO sendMessage(Long senderId, SendMessageDTO sendMessageDTO) {
-        // 1. 验证会话是否存在
-        Conversation conversation = conversationMapper.selectById(sendMessageDTO.getConversationId());
+        Long conversationId = sendMessageDTO.getConversationId();
+
+        // 1. 未传 conversationId：自动查找已有会话，没有则创建
+        if (conversationId == null) {
+            if (sendMessageDTO.getReceiverId() == null) {
+                throw new BusinessException("未指定会话ID时，对方用户ID不能为空");
+            }
+            conversationId = findOrCreateConversation(senderId, sendMessageDTO.getReceiverId(),
+                    sendMessageDTO.getProductId(), sendMessageDTO.getOrderId());
+        }
+
+        // 2. 验证会话是否存在
+        Conversation conversation = conversationMapper.selectById(conversationId);
         if (conversation == null) {
             throw new BusinessException("会话不存在");
         }
 
-        // 2. 验证用户是否属于该会话
+        // 3. 验证用户是否属于该会话
         if (!isConversationParticipant(conversation, senderId)) {
             throw new BusinessException("无权在该会话中发送消息");
         }
 
-        // 3. 验证用户是否有发送消息的权限（根据用户状态判断）
+        // 4. 验证用户是否有发送消息的权限（根据用户状态判断）
         UserAccount sender = userAccountMapper.selectById(senderId);
         if (sender == null) {
             throw new BusinessException("用户不存在");
@@ -71,9 +82,9 @@ public class MessageServiceImpl implements MessageService {
             throw new BusinessException("账号已被封禁，无法发送消息");
         }
 
-        // 4. 创建消息
+        // 5. 创建消息
         ChatMessage message = new ChatMessage();
-        message.setConversationId(sendMessageDTO.getConversationId());
+        message.setConversationId(conversationId);
         message.setSenderId(senderId);
         message.setMessageType(sendMessageDTO.getMessageType());
         message.setSentAt(LocalDateTime.now());
@@ -144,7 +155,7 @@ public class MessageServiceImpl implements MessageService {
         if (lastContent != null && lastContent.length() > 500) {
             lastContent = lastContent.substring(0, 497) + "...";
         }
-        conversationMapper.updateLastMessage(sendMessageDTO.getConversationId(), lastContent);
+        conversationMapper.updateLastMessage(conversationId, lastContent);
 
         // 6. 返回VO
         return buildChatMessageVO(message);
@@ -307,6 +318,29 @@ public class MessageServiceImpl implements MessageService {
             totalUnread += chatMessageMapper.countUnreadCount(conv.getId(), userId);
         }
         return totalUnread;
+    }
+
+    /**
+     * 查找已有会话，没有则创建新的
+     */
+    private Long findOrCreateConversation(Long senderId, Long receiverId, Long productId, Long orderId) {
+        String type = productId != null ? "product_consult" : "order_service";
+        // 先查已有会话
+        Conversation existing = conversationMapper.findExistingConversation(
+                type, senderId, receiverId, productId, orderId);
+        if (existing != null) {
+            return existing.getId();
+        }
+        // 不存在则创建
+        Conversation conversation = new Conversation();
+        conversation.setInitiatorId(senderId);
+        conversation.setReceiverId(receiverId);
+        conversation.setConversationType(productId != null ? "product_consult" : "order_service");
+        conversation.setProductId(productId);
+        conversation.setOrderId(orderId);
+        conversation.setCreatedAt(LocalDateTime.now());
+        conversationMapper.insert(conversation);
+        return conversation.getId();
     }
 
     @Override

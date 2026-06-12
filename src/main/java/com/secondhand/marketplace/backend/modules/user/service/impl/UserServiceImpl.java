@@ -276,25 +276,25 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserProfileVO getUserProfile(Long userId) {
+        UserAccount account = userAccountMapper.selectById(userId);
+        if (account == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
 
         UserProfile profile = userProfileMapper.findByUserId(userId);
 
-
-        if (profile == null) {
-            throw new BusinessException("用户资料不存在");
-        }
-
+        // profile 可能不存在，用 account 基本信息兜底
         return UserProfileVO.builder()
-                .nickname(userAccountMapper.selectById(userId).getNickname())
-                .avatarUrl(profile.getAvatarUrl())
-                .gender(profile.getGender())
-                .birthday(profile.getBirthday())
-                .bio(profile.getBio())
-                .city(profile.getCity())
-                .district(profile.getDistrict())
-                .creditScore(profile.getCreditScore())
-                .positiveRate(profile.getPositiveRate())
-                .totalReviewCount(profile.getTotalReviewCount())
+                .nickname(account.getNickname())
+                .avatarUrl(profile != null ? profile.getAvatarUrl() : null)
+                .gender(profile != null ? profile.getGender() : null)
+                .birthday(profile != null ? profile.getBirthday() : null)
+                .bio(profile != null ? profile.getBio() : null)
+                .city(profile != null ? profile.getCity() : null)
+                .district(profile != null ? profile.getDistrict() : null)
+                .creditScore(profile != null ? profile.getCreditScore() : 100)
+                .positiveRate(profile != null ? profile.getPositiveRate() : java.math.BigDecimal.valueOf(100.00))
+                .totalReviewCount(profile != null ? profile.getTotalReviewCount() : 0)
                 .build();
     }
 
