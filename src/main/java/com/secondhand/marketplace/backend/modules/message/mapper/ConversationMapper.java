@@ -47,7 +47,7 @@ public interface ConversationMapper extends BaseMapper<Conversation> {
     @Update("UPDATE conversation SET last_message_at = NOW(), last_message_content = #{content} WHERE id = #{conversationId}")
     void updateLastMessage(@Param("conversationId") Long conversationId, @Param("content") String content);
     /**
-     * 检查两个用户之间是否已存在某种类型的会话
+     * 检查两个用户之间是否已存在某种类型的会话（精确匹配 productId/orderId）
      */
     @Select("SELECT * FROM conversation WHERE conversation_type = #{conversationType} " +
             "AND ((initiator_id = #{userId1} AND receiver_id = #{userId2}) " +
@@ -60,6 +60,18 @@ public interface ConversationMapper extends BaseMapper<Conversation> {
                                           @Param("userId2") Long userId2,
                                           @Param("productId") Long productId,
                                           @Param("orderId") Long orderId);
+
+    /**
+     * 宽松查找：仅按用户对+类型匹配，忽略 productId/orderId 的细微差异
+     * 用于解决前端不同入口调用时参数不一致导致重复创建会话的问题
+     */
+    @Select("SELECT * FROM conversation WHERE conversation_type = #{conversationType} " +
+            "AND ((initiator_id = #{userId1} AND receiver_id = #{userId2}) " +
+            "OR (initiator_id = #{userId2} AND receiver_id = #{userId1})) " +
+            "ORDER BY last_message_at DESC LIMIT 1")
+    Conversation findConversationByUserPair(@Param("conversationType") String conversationType,
+                                            @Param("userId1") Long userId1,
+                                            @Param("userId2") Long userId2);
 
     /**
      * 获取会话的对方用户ID

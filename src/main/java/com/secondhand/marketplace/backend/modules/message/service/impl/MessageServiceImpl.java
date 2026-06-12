@@ -325,9 +325,14 @@ public class MessageServiceImpl implements MessageService {
      */
     private Long findOrCreateConversation(Long senderId, Long receiverId, Long productId, Long orderId) {
         String type = productId != null ? "product_consult" : "order_service";
-        // 先查已有会话
+        // 1. 精确匹配（同 productId/orderId）
         Conversation existing = conversationMapper.findExistingConversation(
                 type, senderId, receiverId, productId, orderId);
+        // 2. 宽松匹配（仅按用户对+类型，忽略 productId/orderId 差异）
+        if (existing == null) {
+            existing = conversationMapper.findConversationByUserPair(
+                    type, senderId, receiverId);
+        }
         if (existing != null) {
             return existing.getId();
         }
@@ -399,14 +404,14 @@ public class MessageServiceImpl implements MessageService {
             }
         }
 
-        // 检查是否已存在相同场景的会话
+        // 检查是否已存在相同场景的会话（先精确匹配，再宽松匹配）
         Conversation existing = conversationMapper.findExistingConversation(
-                dto.getConversationType(),
-                currentUserId,
-                dto.getUserId(),
-                dto.getProductId(),
-                dto.getOrderId()
-        );
+                dto.getConversationType(), currentUserId, dto.getUserId(),
+                dto.getProductId(), dto.getOrderId());
+        if (existing == null) {
+            existing = conversationMapper.findConversationByUserPair(
+                    dto.getConversationType(), currentUserId, dto.getUserId());
+        }
 
         if (existing != null) {
             // 返回已有会话
