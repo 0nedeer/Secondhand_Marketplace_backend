@@ -107,24 +107,34 @@ public class ProductController {
         return CommonResult.success(vo);
     }
 
-    @Operation(summary = "下架商品", description = "根据ID将发布的商品置为下架状态，非真删除")
-    @DeleteMapping("/{id}")
-    public CommonResult<String> deleteProduct(@PathVariable("id") @NotNull Long id) {
+    @Operation(summary = "下架商品", description = "将上架或已售的商品设为下架状态（off_shelf），所有者/管理员仍可见")
+    @PostMapping("/{id}/off-shelf")
+    public CommonResult<String> offShelfProduct(@PathVariable("id") @NotNull Long id) {
         Long userId = getCurrentUserId();
         if (userId == null) return CommonResult.error(401, "请先登录");
 
-        boolean success = productService.deleteProduct(id, userId);
+        boolean success = productService.offShelfProduct(id, userId);
         if (!success) {
             return CommonResult.error(404, "商品不存在");
         }
         return CommonResult.success("下架成功");
     }
 
+    @Operation(summary = "删除商品（软删除）", description = "将商品标记为已删除（deleted），删除后所有人不可见。只能删除非已删除状态的商品")
+    @DeleteMapping("/{id}")
+    public CommonResult<String> deleteProduct(@PathVariable("id") @NotNull Long id) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return CommonResult.error(401, "请先登录");
+
+        productService.deleteProduct(id, userId);
+        return CommonResult.success("删除成功");
+    }
+
     @Operation(summary = "查询商品单独状态", description = "仅返回当前所处的业务阶段字符串")
     @GetMapping("/status")
     public CommonResult<String> getProductStatus(@RequestParam("id") @NotNull Long id) {
         Product p = productService.getById(id);
-        if (p == null) {
+        if (p == null || Product.STATUS_DELETED.equals(p.getPublishStatus())) {
             return CommonResult.error(404, "商品不存在");
         }
         return CommonResult.success(p.getPublishStatus());

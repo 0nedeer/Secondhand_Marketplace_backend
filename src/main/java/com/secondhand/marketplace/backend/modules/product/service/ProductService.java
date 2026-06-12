@@ -15,8 +15,12 @@ public interface ProductService extends IService<Product> {
 
     ProductVO updateProduct(ProductUpdateDTO dto, Long sellerId);
 
-    boolean deleteProduct(Long id, Long sellerId);
-    
+    // 下架商品：设为 off_shelf，所有者/管理员可见
+    boolean offShelfProduct(Long id, Long sellerId);
+
+    // 真删除（软删除）：设为 deleted 状态，所有人不可见，异常表示失败
+    void deleteProduct(Long id, Long sellerId);
+
     ProductVO getProductDetail(Long id);
     
     PageResult<ProductVO> getProductPage(ProductPageQueryDTO queryDTO, Long currentUserId);
