@@ -1,6 +1,7 @@
 package com.secondhand.marketplace.backend.modules.product.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.secondhand.marketplace.backend.common.exception.BusinessException;
@@ -56,9 +57,11 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (p == null || Product.STATUS_DELETED.equals(p.getPublishStatus())) {
             return false;
         }
-        p.setViewCount((p.getViewCount() == null ? 0 : p.getViewCount()) + 1);  
-        this.updateById(p);
-        return true;
+        // 原子更新，避免并发竞态
+        LambdaUpdateWrapper<Product> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Product::getId, id)
+                .setSql("view_count = view_count + 1");
+        return this.update(updateWrapper);
     }
 
     @Override
@@ -130,22 +133,20 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean offShelfProduct(Long id, Long sellerId) {
+    public void offShelfProduct(Long id, Long sellerId) {
         Product existing = this.getById(id);
         if (existing == null) {
-            return false;
+            throw new BusinessException(404, "商品不存在");
         }
 
         if (!existing.getSellerId().equals(sellerId) && !isAdmin(sellerId)) {
             throw new BusinessException(403, "无权下架他人商品");
         }
 
-        // 已删除的商品不能再下架
         if (Product.STATUS_DELETED.equals(existing.getPublishStatus())) {
             throw new BusinessException(400, "该商品已被删除");
         }
 
-        // 上架、已售 状态的商品可以下架
         if (!Product.STATUS_ON_SALE.equals(existing.getPublishStatus()) && !Product.STATUS_SOLD.equals(existing.getPublishStatus())) {
             throw new BusinessException(400, "仅上架中或已售的商品可以下架");
         }
@@ -153,7 +154,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         existing.setPublishStatus(Product.STATUS_OFF_SHELF);
         existing.setOffShelfAt(LocalDateTime.now());
         this.updateById(existing);
-        return true;
     }
 
     @Override
@@ -277,17 +277,25 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             return false;
         }
 
-        // 可以将 草稿 或 待审核 状态直接变更为 上架 或 驳回
+        // 只能审核 草稿 或 待审核 状态的商品
+        if (!Product.STATUS_DRAFT.equals(product.getPublishStatus()) && !Product.STATUS_PENDING_REVIEW.equals(product.getPublishStatus())) {
+            throw new BusinessException(400, "仅草稿或待审核状态的商品可审核");
+        }
+
         if (Boolean.TRUE.equals(approved)) {
             product.setPublishStatus(Product.STATUS_ON_SALE);
             product.setRejectReason(null);
+            // 首次上架记录发布时间
+            if (product.getPublishedAt() == null) {
+                product.setPublishedAt(LocalDateTime.now());
+            }
             product.setUpdatedAt(LocalDateTime.now());
         } else {
             product.setPublishStatus(Product.STATUS_REJECT);
             product.setRejectReason(rejectReason);
             product.setUpdatedAt(LocalDateTime.now());
         }
-        
+
         return this.updateById(product);
     }
 
@@ -316,19 +324,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
         throw new BusinessException(400, "仅待审核状态可撤销");
     }
-
-//    @Override
-//    @Transactional(rollbackFor = Exception.class)
-//    public boolean takeOffShelf(Long id, Long sellerId) {
-//        Product product = this.getById(id);
-//        if (product == null || !product.getSellerId().equals(sellerId)) return false;
-//        if (Product.STATUS_ON_SALE.equals(product.getPublishStatus())) {
-//            product.setPublishStatus(Product.STATUS_OFF_SHELF);
-//            product.setUpdatedAt(LocalDateTime.now());
-//            return this.updateById(product);
-//        }
-//        throw new BusinessException(400, "仅上架状态可下架");
-//    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)

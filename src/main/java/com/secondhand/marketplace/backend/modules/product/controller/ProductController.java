@@ -11,6 +11,7 @@ import com.secondhand.marketplace.backend.modules.product.entity.Product;
 import com.secondhand.marketplace.backend.modules.product.mapper.CategoryMapper;
 import com.secondhand.marketplace.backend.modules.product.service.ProductService;
 import com.secondhand.marketplace.backend.modules.product.vo.PageResult;
+import com.secondhand.marketplace.backend.modules.product.vo.ProductStatsVO;
 import com.secondhand.marketplace.backend.modules.product.vo.ProductVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -63,16 +64,6 @@ public class ProductController {
         return CommonResult.success(vo);
     }
 
-    // @Operation(summary = "保存商品至草稿箱", description = "仅保存信息不提交审核")
-    // @PostMapping("/draft")
-    // public CommonResult<ProductVO> saveDraft(@RequestBody @Valid ProductCreateDTO dto) {
-    //     Long userId = getCurrentUserId();
-    //     if (userId == null) return CommonResult.error(401, "请先登录");
-    //     dto.setIsDraft(true);
-    //     ProductVO vo = productService.createProduct(dto, userId);
-    //     return CommonResult.success(vo);
-    // }
-
     @Operation(summary = "分页条件查询商品", description = "支持按分类、状态、关键词检索")
     @PostMapping("/list")
     public CommonResult<PageResult<ProductVO>> listProducts(@RequestBody(required = false) ProductPageQueryDTO queryDTO) {
@@ -113,10 +104,7 @@ public class ProductController {
         Long userId = getCurrentUserId();
         if (userId == null) return CommonResult.error(401, "请先登录");
 
-        boolean success = productService.offShelfProduct(id, userId);
-        if (!success) {
-            return CommonResult.error(404, "商品不存在");
-        }
+        productService.offShelfProduct(id, userId);
         return CommonResult.success("下架成功");
     }
 
@@ -150,13 +138,18 @@ public class ProductController {
         return CommonResult.success("浏览量增加成功");
     }
 
-    @Operation(summary = "获取商品简要统计", description = "目前返回商品基本信息(包含浏览/收藏)")
+    @Operation(summary = "获取商品简要统计", description = "返回浏览量、收藏数等简要统计信息")
     @GetMapping("/{id}/stats")
-    public CommonResult<ProductVO> getProductStats(@PathVariable("id") @NotNull Long id) {
-        ProductVO vo = productService.getProductDetail(id);
-        if (vo == null) {
+    public CommonResult<ProductStatsVO> getProductStats(@PathVariable("id") @NotNull Long id) {
+        Product p = productService.getById(id);
+        if (p == null || Product.STATUS_DELETED.equals(p.getPublishStatus())) {
             return CommonResult.error(404, "商品不存在");
         }
+        ProductStatsVO vo = new ProductStatsVO();
+        vo.setId(p.getId());
+        vo.setViewCount(p.getViewCount());
+        vo.setFavoriteCount(p.getFavoriteCount());
+        vo.setPublishStatus(p.getPublishStatus());
         return CommonResult.success(vo);
     }
 
@@ -227,15 +220,6 @@ public class ProductController {
         boolean success = productService.revokeReview(id, userId);
         return success ? CommonResult.success("撤销成功") : CommonResult.error(404, "操作失败或商品不存在");
     }
-
-//    @Operation(summary = "下架商品", description = "卖家将上架的商品设为临时下架(off_shelf)")
-//    @PutMapping("/{id}/off-shelf")
-//    public CommonResult<String> takeOffShelf(@PathVariable("id") @NotNull Long id) {
-//        Long userId = getCurrentUserId();
-//        if (userId == null) return CommonResult.error(401, "请先登录");
-//        boolean success = productService.takeOffShelf(id, userId);
-//        return success ? CommonResult.success("下架成功") : CommonResult.error(404, "操作失败或商品不存在");
-//    }
 
     @Operation(summary = "重新上架", description = "卖家将下架的商品申请重新上架(转为待审核)")
     @PutMapping("/{id}/relist")
