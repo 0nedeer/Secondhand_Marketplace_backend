@@ -100,11 +100,18 @@ public class MessageServiceImpl implements MessageService {
 
                 String coverImageUrl = productImage != null ? productImage.getImageUrl() : "";
 
-                // 构建 extJson
+                // 构建 extJson（价格保留原始精度）
+                String sellingPrice = product.getSellingPrice() != null
+                        ? product.getSellingPrice().setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+                        : "0.00";
+                String originalPrice = product.getOriginalPrice() != null
+                        ? product.getOriginalPrice().setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+                        : "0.00";
                 extJson = String.format(
-                        "{\"productId\":%d,\"price\":%d,\"imageUrl\":\"%s\"}",
+                        "{\"productId\":%d,\"price\":%s,\"originalPrice\":%s,\"imageUrl\":\"%s\"}",
                         product.getId(),
-                        product.getSellingPrice() != null ? product.getSellingPrice().intValue() : 0,
+                        sellingPrice,
+                        originalPrice,
                         coverImageUrl
                 );
 
